@@ -1,48 +1,52 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-/* Java Pigeonhole Sort */
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
 
-import java.lang.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class PigeonholeSort {
-    public static void pigeonhole_sort(int arr[], int n) {
+
+    /**
+     * Performs Pigeonhole Sort on the input array and returns all intermediate array states.
+     *
+     * @param input The array to be sorted
+     * @return A list of array snapshots after placing elements into holes
+     */
+    public static List<int[]> pigeonholeSort(int[] input) {
+        List<int[]> steps = new ArrayList<>();
+        int[] arr = Arrays.copyOf(input, input.length);
+        int n = arr.length;
+
         int min = arr[0];
         int max = arr[0];
-        int range, i, j, index;
 
-        for(int a=0; a<n; a++) {
-            if(arr[a] > max)
-                max = arr[a];
-            if(arr[a] < min)
-                min = arr[a];
+        // Find min and max
+        for (int i = 0; i < n; i++) {
+            if (arr[i] > max) max = arr[i];
+            if (arr[i] < min) min = arr[i];
         }
 
-        range = max - min + 1;
+        int range = max - min + 1;
         int[] phole = new int[range];
         Arrays.fill(phole, 0);
 
-        for(i = 0; i<n; i++)
+        // Count elements in holes
+        for (int i = 0; i < n; i++) {
             phole[arr[i] - min]++;
+            // Visualizer.update(arr);
+            steps.add(Arrays.copyOf(arr, arr.length));
+        }
 
-        index = 0;
+        // Reconstruct the sorted array
+        int index = 0;
+        for (int j = 0; j < range; j++) {
+            while (phole[j]-- > 0) {
+                arr[index++] = j + min;
+                // Visualizer.update(arr);
+                steps.add(Arrays.copyOf(arr, arr.length));
+            }
+        }
 
-        for(j = 0; j<range; j++)
-            while(phole[j]-->0)
-                arr[index++]=j+min;
-    }
-
-    public static void main(String[] args) {
-        PigeonholeSort sort = new PigeonholeSort();
-        int[] arr = {8, 3, 2, 7, 4, 6, 8};
-
-        System.out.print("Unsorted order is : ");
-        for(int i=0 ; i<arr.length ; i++)
-            System.out.print(arr[i] + " ");
-
-        sort.pigeonhole_sort(arr,arr.length);
-
-        System.out.print("\nSorted order is :   ");
-        for(int i=0 ; i<arr.length ; i++)
-            System.out.print(arr[i] + " ");
+        return steps;
     }
 }

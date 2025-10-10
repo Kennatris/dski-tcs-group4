@@ -1,59 +1,64 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class CycleSort {
-    // Main function to test the Cycle sort function
-    public static void main(String[] args) {
-        int arr[] = {1, 8, 3, 9, 10, 10, 2, 4};
+
+    /**
+     * Performs Cycle Sort on the input array and returns all intermediate array states.
+     *
+     * @param input The array to be sorted
+     * @return A list of array snapshots after each write
+     */
+    public static List<int[]> cycleSort(int[] input) {
+        List<int[]> steps = new ArrayList<>();
+        int[] arr = Arrays.copyOf(input, input.length);
         int n = arr.length;
-        cycleSort(arr, n);
-
-        System.out.println("After sort: ");
-        for (int i = 0; i < n; i++) {
-            System.out.println(arr[i] + " ");
-        }
-    }
-
-    // Function sort the array using Cycle sort
-    public static void cycleSort(int arr[], int n) {
-        int w = 0; // count number of memory writes
 
         for (int start = 0; start <= n - 2; start++) {
-            int item = arr[start]; // initializing the starting point
+            int item = arr[start];
+            int pos = start;
 
-            int pos = start; // find the position where we put the item
+            // Find position where we put the item
             for (int i = start + 1; i < n; i++)
                 if (arr[i] < item)
                     pos++;
 
-            if (pos == start) // if the item is already in the correct position
-                continue;
+            if (pos == start) continue;
 
-            while (item == arr[pos]) // ignore all duplicate elements
-                pos += 1;
+            while (item == arr[pos]) pos++;
 
-            if (pos != start) { // put the item to it's right position
+            if (pos != start) {
                 int temp = item;
                 item = arr[pos];
                 arr[pos] = temp;
-                w++;
+
+                // Visualizer.update(arr);
+                steps.add(Arrays.copyOf(arr, arr.length));
             }
 
-            while (pos != start) { // rotate rest of the cycle
+            while (pos != start) {
                 pos = start;
 
                 for (int i = start + 1; i < n; i++)
                     if (arr[i] < item)
-                        pos += 1;
+                        pos++;
 
-                while (item == arr[pos])
-                    pos += 1;
+                while (item == arr[pos]) pos++;
 
                 if (item != arr[pos]) {
                     int temp = item;
                     item = arr[pos];
                     arr[pos] = temp;
-                    w++;
+
+                    // Visualizer.update(arr);
+                    steps.add(Arrays.copyOf(arr, arr.length));
                 }
             }
         }
+
+        return steps;
     }
 }

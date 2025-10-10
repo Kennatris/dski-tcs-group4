@@ -1,54 +1,69 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-import java.util.Scanner;
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class MergeSort {
-    public static void main(String args[]) {
-        Scanner sc = new Scanner(System.in);
-        System.out.print("Enter the number of elements : ");
-        int n = sc.nextInt();
-        int arr[] = new int[n];
-        System.out.println("Enter " + n + " elements :");
-        for (int i = 0; i < n; i++)
-            arr[i] = sc.nextInt();
 
-        mergeSort(arr, 0, n - 1);
-        System.out.println("\nThe sorted array : ;");
-        for (int i = 0; i < n; i++)
-            System.out.print(arr[i] + " ");
-        System.out.println();
+    /**
+     * Performs Merge Sort on the input array and returns all intermediate array states.
+     *
+     * @param input The array to be sorted
+     * @return A list of array snapshots after each merge
+     */
+    public static List<int[]> mergeSort(int[] input) {
+        List<int[]> steps = new ArrayList<>();
+        int[] arr = Arrays.copyOf(input, input.length);
+
+        mergeSortRecursive(arr, 0, arr.length - 1, steps);
+
+        return steps;
     }
 
-    static void mergeSort(int arr[], int lower, int upper) {
-        if (lower >= upper)
-            return;
-        int m = (lower + upper) / 2;
-        mergeSort(arr, lower, m);
-        mergeSort(arr, m + 1, upper);
-        merge(arr, lower, upper);
+    private static void mergeSortRecursive(int[] arr, int lower, int upper, List<int[]> steps) {
+        if (lower >= upper) return;
+        int mid = (lower + upper) / 2;
+
+        mergeSortRecursive(arr, lower, mid, steps);
+        mergeSortRecursive(arr, mid + 1, upper, steps);
+        merge(arr, lower, upper, steps);
     }
 
-    private static void merge(int arr[], int lower, int upper) {
-        int m = (lower + upper) / 2;
-        int a[] = new int[m - lower + 1];
-        int b[] = new int[upper - m];
-        int i, k = 0, k1 = 0, k2 = 0;
-        for (i = lower; i <= m; i++, k++)
-            a[k] = arr[i];
-        k = 0;
-        for (; i <= upper; i++, k++)
-            b[k] = arr[i];
-        for (i = lower; i <= upper && k1 < m - lower + 1 && k2 < upper - m; i++) {
-            if (a[k1] < b[k2]) {
-                arr[i] = a[k1];
-                k1++;
+    private static void merge(int[] arr, int lower, int upper, List<int[]> steps) {
+        int mid = (lower + upper) / 2;
+        int[] left = new int[mid - lower + 1];
+        int[] right = new int[upper - mid];
+
+        for (int i = 0; i < left.length; i++)
+            left[i] = arr[lower + i];
+        for (int i = 0; i < right.length; i++)
+            right[i] = arr[mid + 1 + i];
+
+        int i = 0, j = 0, k = lower;
+        while (i < left.length && j < right.length) {
+            if (left[i] < right[j]) {
+                arr[k++] = left[i++];
             } else {
-                arr[i] = b[k2];
-                k2++;
+                arr[k++] = right[j++];
             }
+
+            // Visualizer.update(arr);
+            steps.add(Arrays.copyOf(arr, arr.length));
         }
-        for (; k1 < m - lower + 1; k1++)
-            arr[i++] = a[k1];
-        for (; k2 < upper - m; k2++)
-            arr[i++] = b[k2];
+
+        while (i < left.length) {
+            arr[k++] = left[i++];
+
+            // Visualizer.update(arr);
+            steps.add(Arrays.copyOf(arr, arr.length));
+        }
+
+        while (j < right.length) {
+            arr[k++] = right[j++];
+
+            // Visualizer.update(arr);
+            steps.add(Arrays.copyOf(arr, arr.length));
+        }
     }
 }

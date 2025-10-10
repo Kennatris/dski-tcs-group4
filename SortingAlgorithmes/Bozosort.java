@@ -1,53 +1,47 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-class BozoSortAlgorithm {
-	
-	int  num1,num2;
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
 
-    void sort(int a[]) throws Exception {
-    
-	boolean sorted = false;
-    
-	while (!sorted) {
-	    int index1 = Randomize(a.length);
-	    int index2 = Randomize(a.length);  
-     
-	    int temp = a[index2];
-	    a[index2] = a[index1];
-	    a[index1] = temp;
-	    compex(index1, index2);
-	    
-	    // Is a[] sorted?
-	    sorted = true;
-	    for (int i = 1; i < a.length; i++)  {
-		if (a[i-1] > a[i]) {
-		    compex(i, i-1);
-		   
-		    sorted = false;
-		    break;
-		} 
-	    }  
-	} 
-    }  
-    
-    private int Randomize( int range )  {
-	
-	double  rawResult;
-  
-	rawResult = Math.random();
-	return (int) (rawResult * range);
-    }
-    
-    private void compex(int num1, int num2)
-    {
-    	this.num1 = num1;
-    	this.num2 = num2;
-    	int temp;
-    	
-    		temp = num1;
-    		num1 = num2;
-    		num2 = temp;
-    		
-    	
-    	
-    }
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class BozoSortAlgorithm {
+
+	/**
+	 * Performs Bozo Sort and returns all intermediate array states.
+	 * @param input The array to be sorted
+	 * @return A list of array snapshots after each modification step
+	 */
+	public static List<int[]> bozoSort(int[] input) {
+		List<int[]> steps = new ArrayList<>();
+		int[] array = Arrays.copyOf(input, input.length);
+		boolean sorted = false;
+
+		while (!sorted) {
+			int index1 = randomIndex(array.length);
+			int index2 = randomIndex(array.length);
+
+			// Swap two random elements
+			int temp = array[index2];
+			array[index2] = array[index1];
+			array[index1] = temp;
+
+			// Visualizer.update(array);
+			steps.add(Arrays.copyOf(array, array.length));
+
+			// Check if sorted
+			sorted = true;
+			for (int i = 1; i < array.length; i++) {
+				if (array[i - 1] > array[i]) {
+					sorted = false;
+					break;
+				}
+			}
+		}
+		return steps;
+	}
+
+	// Generate a random index within range
+	private static int randomIndex(int range) {
+		return (int) (Math.random() * range);
+	}
 }

@@ -1,54 +1,53 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-class CountingSort
-{ 
-    void sort(char arr[]) 
-    { 
-        int n = arr.length; 
-  
-        // The output character array that will have sorted arr 
-        char output[] = new char[n]; 
-  
-        // Create a count array to store count of inidividual 
-        // characters and initialize count array as 0 
-        int count[] = new int[256]; 
-        for (int i=0; i<256; ++i) 
-            count[i] = 0; 
-  
-        // store count of each character 
-        for (int i=0; i<n; ++i) 
-            ++count[arr[i]]; 
-  
-        // Change count[i] so that count[i] now contains actual 
-        // position of this character in output array 
-        for (int i=1; i<=255; ++i) 
-            count[i] += count[i-1]; 
-  
-        // Build the output character array 
-        // To make it stable we are operating in reverse order. 
-        for (int i = n-1; i>=0; i--) 
-        { 
-            output[count[arr[i]]-1] = arr[i]; 
-            --count[arr[i]]; 
-        } 
-  
-        // Copy the output array to arr, so that arr now 
-        // contains sorted characters 
-        for (int i = 0; i<n; ++i) 
-            arr[i] = output[i]; 
-    } 
-  
-    // Driver method 
-    public static void main(String args[]) 
-    { 
-        CountingSort ob = new CountingSort(); 
-        char arr[] = {'c', 'o', 'u', 'n', 't', 'i', 'n', 
-                    'g',  's', 'o', 'r', 't'
-                    }; 
-  
-        ob.sort(arr); 
-  
-        System.out.print("Sorted character array is "); 
-        for (int i=0; i<arr.length; ++i) 
-            System.out.print(arr[i]); 
-    } 
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class CountingSort {
+
+    /**
+     * Performs Counting Sort on the given character array.
+     * Returns a list of array states after each placement into the output array.
+     *
+     * @param input The character array to be sorted
+     * @return A list of array states after each change
+     */
+    public static List<char[]> countingSort(char[] input) {
+        List<char[]> steps = new ArrayList<>();
+        char[] arr = Arrays.copyOf(input, input.length);
+        int n = arr.length;
+
+        char[] output = new char[n];
+        int[] count = new int[256];
+
+        // Initialize count array
+        for (int i = 0; i < 256; i++)
+            count[i] = 0;
+
+        // Store count of each character
+        for (int i = 0; i < n; i++)
+            count[arr[i]]++;
+
+        // Update count[i] so that it contains position information
+        for (int i = 1; i <= 255; i++)
+            count[i] += count[i - 1];
+
+        // Build the output character array (in reverse for stability)
+        for (int i = n - 1; i >= 0; i--) {
+            output[count[arr[i]] - 1] = arr[i];
+            count[arr[i]]--;
+
+            // Visualizer.update(output);
+            steps.add(Arrays.copyOf(output, output.length));
+        }
+
+        // Copy output back into input
+        for (int i = 0; i < n; i++) {
+            arr[i] = output[i];
+        }
+
+        steps.add(Arrays.copyOf(arr, arr.length)); // final sorted state
+        return steps;
+    }
 }

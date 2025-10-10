@@ -1,68 +1,68 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-import java.util.Scanner;
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class BitonicSort {
 
-	public static void main(String[] args) {
-		Scanner sc = new Scanner(System.in);
-		System.out.print("Enter the number of elements : ");
-		int n = sc.nextInt();
-		int[] arr = new int[n];
-		System.out.println("Enter " + n + " elements :");
-		for (int i = 0; i < n; i++)
-			arr[i] = sc.nextInt();
-
-		bitonicSort(arr, 0, arr.length, 1);
-
-		System.out.println("\nThe sorted array : ;");
-		for (int i = 0; i < n; i++)
-			System.out.print(arr[i] + " ");
-		System.out.println();
+	/**
+	 * Performs Bitonic Sort and returns all intermediate array states.
+	 * @param input      The array to be sorted
+	 * @return           A list of array snapshots after each modification step
+	 */
+	public static List<int[]> bitonicSort(int[] input) {
+		List<int[]> steps = new ArrayList<>();
+		int[] array = Arrays.copyOf(input, input.length);
+		bitonicSortRecursive(array, 0, array.length, 1, steps);
+		return steps;
 	}
 
 	/**
-	 * This is the Sorting function that iteratively sorts the array
-	 * @param arr 		 The array/sub-array to be sorted
-	 * @param start 	 Starting Index to condider for sorting
-	 * @param length	 Length of array to sort
-	 * @param direction  Directrion of sorting: 1 for ascending order sort and 0 for descending order
+	 * Recursive Bitonic Sort function.
+	 * @param arr        The array/sub-array to be sorted
+	 * @param start      Starting index to consider for sorting
+	 * @param length     Length of array segment to sort
+	 * @param direction  Sorting direction: 1 for ascending, 0 for descending
+	 * @param steps      List to store intermediate states
 	 */
-	public static void bitonicSort(int[] arr, int start, int length, int direction) {
+	private static void bitonicSortRecursive(int[] arr, int start, int length, int direction, List<int[]> steps) {
 		if (length > 1) {
-			int mid = length/2;
+			int mid = length / 2;
 
-			bitonicSort(arr, start, mid, 1);
-
-			bitonicSort(arr, start+mid, mid, 0);
-
-			bitonicMerge(arr, start, length, direction);
+			bitonicSortRecursive(arr, start, mid, 1, steps);
+			bitonicSortRecursive(arr, start + mid, mid, 0, steps);
+			bitonicMerge(arr, start, length, direction, steps);
 		}
 	}
 
 	/**
-	 * This function merges the two halves of array in bitonic order
-	 * @param arr 		 The array/sub-array to be sorted
-	 * @param start 	 Starting Index to condider for sorting
-	 * @param length	 Length of array to sort
-	 * @param direction  Directrion of sorting: 1 for ascending order sort and 0 for descending order
+	 * Merges two halves of the array in bitonic order.
+	 * @param arr        The array/sub-array to be merged
+	 * @param start      Starting index to consider for merging
+	 * @param length     Length of array segment to merge
+	 * @param direction  Sorting direction: 1 for ascending, 0 for descending
+	 * @param steps      List to store intermediate states
 	 */
-	private static void bitonicMerge(int[] arr, int start, int length, int direction) {
+	private static void bitonicMerge(int[] arr, int start, int length, int direction, List<int[]> steps) {
 		if (length > 1) {
-			int mid = length/2;
+			int mid = length / 2;
 
-			for (int i = start; i < start+mid; i++) {
-				if ((arr[i] > arr[i+mid] && direction == 1) ||
-					 (arr[i] < arr[i+mid] && direction == 0)) {
+			for (int i = start; i < start + mid; i++) {
+				if ((arr[i] > arr[i + mid] && direction == 1) ||
+						(arr[i] < arr[i + mid] && direction == 0)) {
+
 					int temp = arr[i];
-					arr[i] = arr[i+mid];
-					arr[i+mid] = temp;
+					arr[i] = arr[i + mid];
+					arr[i + mid] = temp;
+
+					// Visualizer.update(arr);
+					steps.add(Arrays.copyOf(arr, arr.length));
 				}
 			}
 
-			bitonicMerge(arr, start, mid, direction);
-
-			bitonicMerge(arr, start+mid, mid, direction);
+			bitonicMerge(arr, start, mid, direction, steps);
+			bitonicMerge(arr, start + mid, mid, direction, steps);
 		}
 	}
-
 }

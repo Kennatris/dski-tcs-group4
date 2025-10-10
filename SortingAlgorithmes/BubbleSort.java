@@ -1,40 +1,38 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-import java.util.Scanner;
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class BubbleSort {
 
-    public static void main(String args[]) {
-        Scanner sc = new Scanner(System.in);
-        System.out.print("Enter the number of elements : ");
-        int n = sc.nextInt();
-        int arr[] = new int[n];
-        System.out.println("Enter " + n + " elements :");
-        for (int i = 0; i < n; i++)
-            arr[i] = sc.nextInt();
+    /**
+     * Performs Bubble Sort and returns all intermediate array states.
+     * @param input The array to be sorted
+     * @return A list of array snapshots after each swap
+     */
+    public static List<int[]> bubbleSort(int[] input) {
+        List<int[]> steps = new ArrayList<>();
+        int[] array = Arrays.copyOf(input, input.length);
+        int len = array.length;
+        boolean swapped;
 
-        bubbleSort(arr);
-
-        System.out.println("\nThe sorted array : ;");
-        for (int i = 0; i < n; i++)
-            System.out.print(arr[i] + " ");
-        System.out.println();
-    }
-
-    static void bubbleSort(int arr[]) {
-        int len = arr.length, tmp;
-        boolean flag;
-        for (int i = 0; i < len; i++) {
-            flag = false;
+        for (int i = 0; i < len - 1; i++) {
+            swapped = false;
             for (int j = 0; j < len - i - 1; j++) {
-                if (arr[j] > arr[j + 1]) {
-                    tmp = arr[j];
-                    arr[j] = arr[j + 1];
-                    arr[j + 1] = tmp;
-                    flag = true;
+                if (array[j] > array[j + 1]) {
+                    int temp = array[j];
+                    array[j] = array[j + 1];
+                    array[j + 1] = temp;
+
+                    // Visualizer.update(array);
+                    steps.add(Arrays.copyOf(array, array.length));
+                    swapped = true;
                 }
             }
-            if (!flag)
-                break;
+            if (!swapped) break;
         }
+
+        return steps;
     }
 }

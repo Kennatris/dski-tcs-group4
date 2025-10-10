@@ -1,64 +1,46 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-import java.util.Scanner;
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
 
-//The infamous worst sorting algorithm of all. BogoSort is entirely based on randomly generating a permutation of
-//the list that just happens to be sorted. Otherwise, it keeps generating random permutations of the elements in the
-//the array. This particular implementation actually prints the total amount of shuffles it goes through before the
-//sorted array permutation was actually generated.
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class BogoSort {
 
-    //Main method adapted from uploaded files by OP.
-    public static void main(String args[]) {
-        //Read number of elements and the elements using a Scanner Instance.
-        Scanner sc = new Scanner(System.in);
-        System.out.print("Enter the number of elements : ");
-        int n = sc.nextInt();
-        int arr[] = new int[n];
-        System.out.println("Enter " + n + " elements :");
-        for (int i = 0; i < n; i++)
-            arr[i] = sc.nextInt();
+    // The only callable function
+    public static List<int[]> bogoSort(int[] input) {
+        List<int[]> steps = new ArrayList<>();
+        int[] array = Arrays.copyOf(input, input.length);
 
-        //Call RandomSort.
-        RandomSort(arr);
-
-        //Print array after sorting.
-        System.out.println("\nThe sorted array : ;");
-        for (int i = 0; i < n; i++)
-            System.out.print(arr[i] + " ");
-        System.out.println();
-    }
-
-    //Sorting method calls shuffle while calling isSorted to check if it is
-    //sorted. It will repeatedly call shuffle until isSorted returns true.
-    static void RandomSort(int[] i) {
         int counter = 0;
-        while(!isSorted(i)) {
-            shuffle(i);
+        while (!isSorted(array)) {
+            shuffle(array);
             counter++;
+            // Visualizer.update(array);
+            steps.add(Arrays.copyOf(array, array.length));
         }
-        System.out.println("The array was shuffled "+counter+" times!");
+
+        // Optionally, could log total shuffles if needed:
+        // System.out.println("Shuffled " + counter + " times");
+
+        return steps;
     }
 
-    //Shuffles the array that is passed to it by randomly swapping
-    //elements within the array.
-    static void shuffle(int[] i) {
-        //iterate through all elements
-        for(int x = 0; x < i.length; ++x) {
-            //2 indexes are randomly generated using random * integer array length.
-            int index1 = (int) (Math.random() * i.length);
-            int index2 = (int) (Math.random() * i.length);
+    // Shuffle helper
+    private static void shuffle(int[] array) {
+        for (int i = 0; i < array.length; i++) {
+            int index1 = (int) (Math.random() * array.length);
+            int index2 = (int) (Math.random() * array.length);
 
-            //Swap the elements in the two randomly generated indexes.
-            int a = i[index1];
-            i[index1] = i[index2];
-            i[index2] = a;
+            int temp = array[index1];
+            array[index1] = array[index2];
+            array[index2] = temp;
         }
     }
 
-    //Checks the array is sorted by checking if each consecutive term is increasing in magnitude.
-    static boolean isSorted(int[] i) {
-        for(int x = 0; x < i.length - 1; ++x) {
-            if(i[x] > i[x+1]) {
+    // Check if array is sorted
+    private static boolean isSorted(int[] array) {
+        for (int i = 0; i < array.length - 1; i++) {
+            if (array[i] > array[i + 1]) {
                 return false;
             }
         }

@@ -1,44 +1,44 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-import java.util.Scanner;
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class ShellSort {
-    public static void main(String args[]) {
-        Scanner sc = new Scanner(System.in);
-        System.out.print("Enter the number of elements : ");
-        int n = sc.nextInt();
-        int arr[] = new int[n];
-        System.out.println("Enter " + n + " elements :");
-        for (int i = 0; i < n; i++)
-            arr[i] = sc.nextInt();
 
-        shellSort(arr);
-
-        System.out.println("\nThe sorted array : ;");
-        for (int i = 0; i < n; i++)
-            System.out.print(arr[i] + " ");
-        System.out.println();
-    }
-
-    static void shellSort(int[] nums) {
-        int h = 1;
+    /**
+     * Performs Shell Sort on the input array and returns all intermediate steps.
+     *
+     * @param input The array to sort
+     * @return A list of array snapshots after each modification
+     */
+    public static List<int[]> shellSort(int[] input) {
+        List<int[]> steps = new ArrayList<>();
+        int[] nums = Arrays.copyOf(input, input.length);
         int n = nums.length;
-        while(h < n) {
-                h = h * 3 + 1;
+
+        int h = 1;
+        while (h < n) {
+            h = h * 3 + 1;
         }
         h = h / 3;
-        int c, j;
-        
+
         while (h > 0) {
             for (int i = h; i < n; i++) {
-                c = nums[i];
-                j = i;
+                int c = nums[i];
+                int j = i;
                 while (j >= h && nums[j - h] > c) {
                     nums[j] = nums[j - h];
                     j = j - h;
+                    // Visualizer.update(nums);
+                    steps.add(Arrays.copyOf(nums, nums.length));
                 }
                 nums[j] = c;
+                // Visualizer.update(nums);
+                steps.add(Arrays.copyOf(nums, nums.length));
             }
             h = h / 2;
         }
+
+        return steps;
     }
 }

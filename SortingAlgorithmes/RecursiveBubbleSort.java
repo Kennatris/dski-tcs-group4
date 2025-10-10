@@ -1,43 +1,39 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-// Java program for recursive implementation 
-// of Bubble sort 
-  
-import java.util.Arrays;
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
 
-public class RecursiveBubbleSort
-{ 
-    // A function to implement bubble sort 
-    private static void bubbleSort(int arr[], int n)
-    { 
-        // Base case 
-        if (n == 1) 
-            return; 
-       
-        // One pass of bubble sort. After 
-        // this pass, the largest element 
-        // is moved (or bubbled) to end. 
-        for (int i=0; i<n-1; i++) 
-            if (arr[i] > arr[i+1]) 
-            { 
-                // swap arr[i], arr[i+1] 
-                int temp = arr[i]; 
-                arr[i] = arr[i+1]; 
-                arr[i+1] = temp; 
-            } 
-       
-        // Largest element is fixed, 
-        // recur for remaining array 
-        bubbleSort(arr, n-1); 
-    } 
-      
-    // Driver Method 
-    public static void main(String[] args) 
-    { 
-        int arr[] = {64, 34, 25, 12, 22, 11, 90}; 
-       
-        bubbleSort(arr, arr.length); 
-          
-        System.out.println("Sorted array : "); 
-        System.out.println(Arrays.toString(arr)); 
-    } 
-} 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class RecursiveBubbleSort {
+
+    /**
+     * Performs recursive bubble sort on the input array and returns all intermediate steps.
+     *
+     * @param input The array to sort
+     * @return A list of array snapshots after each recursive step
+     */
+    public static List<int[]> bubbleSort(int[] input) {
+        List<int[]> steps = new ArrayList<>();
+        int[] arr = Arrays.copyOf(input, input.length);
+        bubbleSortRecursive(arr, arr.length, steps);
+        return steps;
+    }
+
+    private static void bubbleSortRecursive(int[] arr, int n, List<int[]> steps) {
+        if (n == 1)
+            return;
+
+        for (int i = 0; i < n - 1; i++) {
+            if (arr[i] > arr[i + 1]) {
+                int temp = arr[i];
+                arr[i] = arr[i + 1];
+                arr[i + 1] = temp;
+
+                // Visualizer.update(arr);
+                steps.add(Arrays.copyOf(arr, arr.length));
+            }
+        }
+
+        bubbleSortRecursive(arr, n - 1, steps);
+    }
+}

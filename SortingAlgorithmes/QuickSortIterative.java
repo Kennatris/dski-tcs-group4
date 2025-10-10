@@ -1,73 +1,54 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-// Java program for implementation of QuickSort
-import java.util.*; 
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
 
-class QuickSortIterative 
-{ 
-	/* This function takes last element as pivot, 
-	places the pivot element at its correct 
-	position in sorted array, and places all 
-	smaller (smaller than pivot) to left of 
-	pivot and all greater elements to right 
-	of pivot */
-	static int partition(int arr[], int low, int high) 
-	{ 
-		int pivot = arr[high]; 
-		int i = (low-1); // index of smaller element 
-		for (int j=low; j<=high-1; j++) 
-		{ 
-			// If current element is smaller than or 
-			// equal to pivot 
-			if (arr[j] <= pivot) 
-			{ 
-				i++; 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-				// swap arr[i] and arr[j] 
-				int temp = arr[i]; 
-				arr[i] = arr[j]; 
-				arr[j] = temp; 
-			} 
-		} 
+public class QuickSortIterative {
 
-		// swap arr[i+1] and arr[high] (or pivot) 
-		int temp = arr[i+1]; 
-		arr[i+1] = arr[high]; 
-		arr[high] = temp; 
+	/**
+	 * Performs Quick Sort (recursive) on the input array and returns all intermediate array states.
+	 *
+	 * @param input The array to be sorted
+	 * @return A list of array snapshots after each swap
+	 */
+	public static List<int[]> quickSort(int[] input) {
+		List<int[]> steps = new ArrayList<>();
+		int[] arr = Arrays.copyOf(input, input.length);
 
-		return i+1; 
-	} 
+		quickSortRecursive(arr, 0, arr.length - 1, steps);
 
-	/* The main function that implements QuickSort() 
-	arr[] --> Array to be sorted, 
-	low --> Starting index, 
-	high --> Ending index */
-	static void qSort(int arr[], int low, int high) 
-	{ 
-		if (low < high) 
-		{ 
-			/* pi is partitioning index, arr[pi] is 
-			now at right place */
-			int pi = partition(arr, low, high); 
+		return steps;
+	}
 
-			// Recursively sort elements before 
-			// partition and after partition 
-			qSort(arr, low, pi-1); 
-			qSort(arr, pi+1, high); 
-		} 
-	} 
-	
-	// Driver code 
-	public static void main(String args[]) 
-	{ 
-		
-		int n = 5; 
-		int arr[] = {4, 2, 6, 9, 2}; 
-		
-		qSort(arr, 0, n-1); 
-		
-		for(int i =0;i<n;i++){ 
-			System.out.print(arr[i]+" "); 
-		} 
-		
-	} 
-} 
+	private static void quickSortRecursive(int[] arr, int low, int high, List<int[]> steps) {
+		if (low < high) {
+			int pi = partition(arr, low, high, steps);
+			quickSortRecursive(arr, low, pi - 1, steps);
+			quickSortRecursive(arr, pi + 1, high, steps);
+		}
+	}
+
+	private static int partition(int[] arr, int low, int high, List<int[]> steps) {
+		int pivot = arr[high];
+		int i = low - 1;
+
+		for (int j = low; j <= high - 1; j++) {
+			if (arr[j] <= pivot) {
+				i++;
+				swap(arr, i, j, steps);
+			}
+		}
+		swap(arr, i + 1, high, steps);
+		return i + 1;
+	}
+
+	private static void swap(int[] arr, int i, int j, List<int[]> steps) {
+		int temp = arr[i];
+		arr[i] = arr[j];
+		arr[j] = temp;
+
+		// Visualizer.update(arr);
+		steps.add(Arrays.copyOf(arr, arr.length));
+	}
+}

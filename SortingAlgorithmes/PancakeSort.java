@@ -1,66 +1,53 @@
-// code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
-// Java program to sort array using pancake sort
+// code based on code by diptangsu from https://github.com/diptangsu/Sorting-Algorithms/tree/master
 
-import java.io.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-class PancakeSort {
+public class PancakeSort {
 
-    // Reverses arr[0..i]
-    static void flip(int arr[], int i) {
-        int temp, start = 0;
+    /**
+     * Performs Pancake Sort on the input array and returns all intermediate array states.
+     *
+     * @param input The array to be sorted
+     * @return A list of array snapshots after each flip
+     */
+    public static List<int[]> pancakeSort(int[] input) {
+        List<int[]> steps = new ArrayList<>();
+        int[] arr = Arrays.copyOf(input, input.length);
+        int n = arr.length;
+
+        for (int curr_size = n; curr_size > 1; --curr_size) {
+            int mi = findMax(arr, curr_size);
+
+            if (mi != curr_size - 1) {
+                flip(arr, mi, steps);            // Move max to front
+                flip(arr, curr_size - 1, steps); // Move max to end
+            }
+        }
+
+        return steps;
+    }
+
+    private static void flip(int[] arr, int i, List<int[]> steps) {
+        int start = 0;
         while (start < i) {
-            temp = arr[start];
+            int temp = arr[start];
             arr[start] = arr[i];
             arr[i] = temp;
             start++;
             i--;
         }
+
+        // Visualizer.update(arr);
+        steps.add(Arrays.copyOf(arr, arr.length));
     }
 
-    // Returns index of the maximum element in arr[0..n-1]
-    static int findMax(int arr[], int n) {
-        int mi, i;
-        for (mi = 0, i = 0; i < n; ++i)
-            if (arr[i] > arr[mi])
-                mi = i;
-        return mi;
-    }
-
-    // The main function that sorts given array using flip operations
-    static int pancakeSort(int arr[], int n) {
-        // Start from the complete array and one by one reduce current size by one
-        for (int curr_size = n; curr_size > 1; --curr_size) {
-            // Find index of the maximum element in arr[0..curr_size-1]
-            int mi = findMax(arr, curr_size);
-
-            // Move the maximum element to end of current array if it's not already at the end
-            if (mi != curr_size-1) {
-                // To move at the end, first move maximum number to beginning
-                flip(arr, mi);
-
-                // Now move the maximum number to end by reversing current array
-                flip(arr, curr_size-1);
-            }
+    private static int findMax(int[] arr, int n) {
+        int mi = 0;
+        for (int i = 0; i < n; i++) {
+            if (arr[i] > arr[mi]) mi = i;
         }
-        return 0;
-    }
-
-    static void printArray(int arr[], int arr_size) {
-        for (int i = 0; i < arr_size; i++)
-            System.out.print(arr[i] + " ");
-        System.out.println("");
-    }
-
-    public static void main (String[] args) {
-        int arr[] = {23, 10, 20, 11, 12, 6, 7};
-        int n = arr.length;
-
-        System.out.println("Unsorted Array: ");
-        printArray(arr, n);
-
-        pancakeSort(arr, n);
-
-        System.out.println("Sorted Array: ");
-        printArray(arr, n);
+        return mi;
     }
 }
