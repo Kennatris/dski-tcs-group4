@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <title>Sortieralgorithmen vergleichen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body { font-family: system-ui, Arial, sans-serif; margin: 2rem; }
+        h1 { text-align: center; margin-bottom: 2rem; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        label { display:block; margin-top: 1rem; font-weight: 600; }
+        select, input[type="text"] { width: 100%; padding: .5rem; font-size: 1rem; }
+        button { margin-top: 1rem; padding: .6rem 1rem; font-size: 1rem; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+        th, td { border: 1px solid #ddd; padding: .5rem; text-align: left; }
+        th { background: #f5f5f5; }
+        .hint { color:#555; font-size:.9rem; }
+        iframe { width: 100%; height: 300px; border: 1px solid #ccc; margin-top: 1rem; border-radius: 8px; }
+        .center { text-align: center; }
+        .loading { color: #007bff; font-style: italic; }
+    </style>
+</head>
+<body>
+<h1>Vergleich von zwei Sortieralgorithmen</h1>
+
+<!-- Datensatz-Auswahl -->
+<div class="center">
+    <label>Datensatz-Auswahl</label>
+    <select id="datasetSelect"></select>
+</div>
+
+<!-- Zwei Spalten: Algorithmus A & Algorithmus B -->
+<div class="grid">
+    <div>
+        <label>Algorithmus A</label>
+        <select id="algoA"></select>
+        <iframe id="frameA" title="Algorithmus A Visualisierung"></iframe>
+    </div>
+    <div>
+        <label>Algorithmus B</label>
+        <select id="algoB"></select>
+        <iframe id="frameB" title="Algorithmus B Visualisierung"></iframe>
+    </div>
+</div>
+
+<!-- Vergleich starten -->
+<div class="center">
+    <button id="compareBtn">Vergleichen</button>
+    <p id="status" class="loading" style="display:none;">Sortiere Daten...</p>
+</div>
+
+<!-- Ergebnis-Tabelle -->
+<table id="resultTable" style="display:none">
+    <thead>
+    <tr>
+        <th>Algorithmus</th>
+        <th>Laufzeit (Steps)</th>
+        <th>Unsortiertes Array</th>
+        <th>Sortiertes Ergebnis</th>
+        <th>Worst Case</th>
+        <th>Average Case</th>
+        <th>Best Case</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    /**
+     * Hauptskript für die Seite "Vergleich von zwei Sortieralgorithmen".
+     *
+     * Ziel:
+     * - verfügbare Algorithmen vom Backend laden und in zwei <select>-Elementen anzeigen
+     * - Datensätze vom Backend laden und Auswahl ermöglichen
+     * - beim Klick auf "Vergleichen" die ausgewählten Algorithmen mit dem ausgewählten Datensatz
+     *   vergleichen (Backend-Aufruf POST /api/compare) und die Ergebnisse darstellen
+     *
+     * Hinweise:
+     * - Alle Kommentare hier sind auf Deutsch, um die Funktionalität und den Datenfluss klar zu machen.
+     * - Fehlerbehandlung ist überall vorhanden (try/catch), damit Nutzer über Fehler informiert werden.
+     */
+
+        // --- Lokaler Speicher für Datensätze ---
+        // datasets wird beim Laden der Datensätze gefüllt und später beim Vergleich verwendet.
+    let datasets = {};
+
+    // --- 1️⃣ Lade verfügbare Sortieralgorithmen vom Backend ---
+    /**
+     * loadAlgorithms()
+     * - Ruft die Liste verfügbarer Sortieralgorithmen vom Backend-Endpunkt /api/compare/algorithms ab.
+     * - Füllt zwei Select-Elemente (algoA, algoB) mit den zurückgegebenen Algorithmus-Namen.
+     * - Falls mindestens zwei Algorithmen vorhanden sind, setzt es eine sinnvolle Standardauswahl
+     *   (erstes Element für Algorithmus A, zweites für Algorithmus B).
+     *
+     * Ablauf:
+     * 1. fetch auf /api/compare/algorithms
+     * 2. Antwort als JSON parsen (erwartet ein Array von Strings)
+     * 3. Die beiden Select-Elemente leeren und mit Optionen füllen
+     * 4. Standardauswahl setzen (wenn möglich)
+     *
+     * Fehler:
+     * - Wenn der fetch fehlschlägt oder das JSON nicht im erwarteten Format ist, wird ein Fehler
+     *   in der Konsole ausgegeben (kein USERVERFASSER-Alert, um zu vermeiden, dass die Seite stoppt).
+     */
+    async function loadAlgorithms() {
+        try {
+            const res = await fetch('/api/compare/algorithms');
+            // Wenn der Request nicht erfolgreich war, werfen wir einen Fehler
+            if (!res.ok) throw new Error(`Fehler beim Laden der Algorithmen: ${res.status} ${res.statusText}`);
+
+            // Erwartet: JSON-Antwort, z.B. ["bubbleSort", "quickSort", "mergeSort"]
+            const algos = await res.json();
+
+            // Referenzen auf die Select-Elemente
+            const selectA = document.getElementById('algoA');
+            const selectB = document.getElementById('algoB');
+
+            // Alte Optionen entfernen
+            selectA.innerHTML = '';
+            selectB.innerHTML = '';
+
+            // Neue Optionen hinzufügen
+            for (const name of algos) {
+                const optionA = document.createElement('option');
+                optionA.value = name;
+                optionA.textContent = name;
+                selectA.appendChild(optionA);
+
+                const optionB = document.createElement('option');
+                optionB.value = name;
+                optionB.textContent = name;
+                selectB.appendChild(optionB);
+            }
+
+            // Wenn mindestens zwei Algorithmen vorhanden sind, sinnvolle Defaults setzen
+            if (algos.length >= 2) {
+                selectA.selectedIndex = 0;
+                selectB.selectedIndex = 1;
+            } else if (algos.length === 1) {
+                // Wenn nur einer vorhanden ist, beide auf denselben setzen
+                selectA.selectedIndex = 0;
+                selectB.selectedIndex = 0;
+            }
+        } catch (err) {
+            // Fehler beim Laden der Algorithmen
+            console.error('Fehler beim Laden der Algorithmen:', err);
+        }
+    }
+
+    // --- 2️⃣ Lade Datensätze vom Backend ---
+    /**
+     * loadDatasets()
+     * - Ruft Datensätze vom Backend-Endpunkt /api/compare/datasets ab.
+     * - Speichert das resultierende Objekt in der globalen Variable `datasets`.
+     * - Füllt das Select-Element für die Datensatz-Auswahl mit den gefundenen Schlüsseln.
+     *
+     * Erwartetes Format der Antwort:
+     * {
+     *   "unsorted": [5,3,1,4,2],
+     *   "halfSorted": [1,2,3,6,5,4],
+     *   ...
+     * }
+     *
+     * Verhalten:
+     * - Die Select-Optionen werden aus den Keys des Objekts gebildet.
+     * - Die Anzeige-Texte werden formatiert: z.B. "halfSorted" -> "Half Sorted"
+     *
+     * Fehler:
+     * - Falls der Request fehlschlägt, wird der Fehler in der Konsole protokolliert.
+     */
+    async function loadDatasets() {
+        try {
+            const res = await fetch('/api/compare/datasets');
+
+            // HTTP-Fehler abfangen und aussagekräftige Fehlermeldung erzeugen
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+            // Erwartet ein JSON-Objekt mit verschiedenen Datensätzen
+            const data = await res.json();
+
+            // Speicher aktualisieren
+            datasets = data || {};
+
+            // Select-Element für Datensätze füllen
+            const sel = document.getElementById('datasetSelect');
+            sel.innerHTML = '';
+
+            // Für jeden Key im datasets-Objekt eine Option erzeugen
+            for (const key of Object.keys(datasets)) {
+                const opt = document.createElement('option');
+                opt.value = key;
+
+                // Benutzerfreundlichen Text erzeugen:
+                // - Großbuchstaben durch Leerzeichen trennen
+                // - Erstes Zeichen großschreiben
+                opt.textContent = key
+                    .replace(/([A-Z])/g, ' $1')
+                    .replace(/^./, str => str.toUpperCase());
+
+                sel.appendChild(opt);
+            }
+
+            // Falls Optionen vorhanden sind, erste auswählen
+            if (sel.options.length > 0) sel.selectedIndex = 0;
+        } catch (err) {
+            console.error("Fehler beim Laden der Datensätze:", err);
+        }
+    }
+
+    // --- 3️⃣ Vergleich ausführen ---
+    /**
+     * compare()
+     * - Wird beim Klick auf den "Vergleichen"-Button aufgerufen.
+     * - Liest ausgewählten Datensatz und ausgewählte Algorithmen aus.
+     * - Sendet einen POST-Request an /api/compare mit dem Payload:
+     *     { algorithms: [algoA, algoB], input: inputData }
+     * - Verarbeitet die Antwort und füllt die Ergebnis-Tabelle (resultTable).
+     * - Setzt die src der beiden iframes, um Visualisierungen zu laden (/visualizer/{algorithm}).
+     *
+     * Erwartetes Format der Antwort:
+     * [
+     *   {
+     *     algorithm: "quickSort",
+     *     durationMillis: 12,
+     *     unsorted: [ ... ],
+     *     sorted: [ ... ],
+     *     worstCase: "O(n^2)",
+     *     averageCase: "O(n log n)",
+     *     bestCase: "O(n log n)"
+     *   },
+     *   { ... } // zweiter Algorithmus
+     * ]
+     *
+     * Fehlerbehandlung:
+     * - Bei HTTP-Fehlern wird eine Fehlermeldung geworfen und als Alert angezeigt.
+     */
+    async function compare() {
+        const status = document.getElementById('status');
+
+        // Ladehinweis anzeigen
+        status.style.display = 'inline';
+        status.textContent = "Sortiere Daten...";
+
+        try {
+            const datasetKey = document.getElementById('datasetSelect').value;
+
+            // Datensatz aus lokal gespeichertem Objekt holen
+            const inputData = datasets[datasetKey];
+            if (!inputData) {
+                // Kein Datensatz ausgewählt oder Datensatz fehlt
+                alert("Fehler: Kein Datensatz ausgewählt!");
+                return;
+            }
+
+            // Payload für den Vergleichs-Request zusammenstellen
+            const payload = {
+                algorithms: [
+                    document.getElementById('algoA').value,
+                    document.getElementById('algoB').value
+                ],
+                input: inputData
+            };
+
+            // POST-Request an das Backend
+            const res = await fetch('/api/compare', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            // HTTP-Fehler abfangen
+            if (!res.ok) throw new Error(`Fehler beim Vergleich: ${res.status} ${res.statusText}`);
+
+            // Ergebnis als JSON parsen (erwartet ein Array von Ergebnis-Objekten)
+            const data = await res.json();
+
+            // Referenz auf Ergebnis-Tabelle und tbody
+            const table = document.getElementById('resultTable');
+            const tbody = table.querySelector('tbody');
+
+            // Vorherige Zeilen entfernen
+            tbody.innerHTML = '';
+
+            // Für jede Rückgabezeile eine Tabellenzeile erzeugen
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+
+                // Mit Template-Literal die Zellen befüllen.
+                // Für Arrays (unsorted/sorted) wird join(', ') verwendet, damit die Ausgabe lesbar ist.
+                tr.innerHTML = `
+            <td>${row.algorithm ?? '-'}</td>
+            <td>${row.durationMillis ?? '-'}</td>
+            <td>${(row.unsorted || []).join(', ')}</td>
+            <td>${(row.sorted || []).join(', ')}</td>
+            <td>${row.worstCase ?? '-'}</td>
+            <td>${row.averageCase ?? '-'}</td>
+            <td>${row.bestCase ?? '-'}</td>
+          `;
+                tbody.appendChild(tr);
+            });
+
+            // Tabelle nur anzeigen, wenn Daten vorhanden sind
+            table.style.display = (data && data.length) ? 'table' : 'none';
+
+            // Visualisierung iframes aktualisieren:
+            // - encodeURIComponent verwenden, um Sonderzeichen in Algorithmus-Namen zu schützen
+            const algoA = document.getElementById('algoA').value;
+            const algoB = document.getElementById('algoB').value;
+            const frameA = document.getElementById('frameA');
+            const frameB = document.getElementById('frameB');
+
+            // 🔹 iframe zeigt jetzt die neue visualizer.html an
+            frameA.src = `/visualizer.html?algo=${encodeURIComponent(algoA)}`;
+            frameB.src = `/visualizer.html?algo=${encodeURIComponent(algoB)}`;
+
+        } catch (err) {
+            // Fehler anzeigen und in der Konsole protokollieren
+            console.error("Fehler beim Vergleich:", err);
+            alert("Fehler beim Vergleich: " + (err.message || err));
+        } finally {
+            // Ladehinweis ausblenden (unabhängig davon, ob Fehler auftrat)
+            status.style.display = 'none';
+        }
+    }
+
+    // --- Event-Listener und Initialisierung ---
+    // Button "Vergleichen" an die Funktion compare binden
+    document.getElementById('compareBtn').addEventListener('click', compare);
+
+    // Initiales Laden der verfügbaren Algorithmen und Datensätze
+    // (ausgeführt beim Laden des Skripts / der Seite)
+    loadAlgorithms();
+    loadDatasets();
+</script>
+</body>
+</html>

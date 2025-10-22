@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Sortier-Visualisierung</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; }
+        canvas { display: block; background: #f5f5f5; margin: auto; }
+    </style>
+</head>
+<body>
+<canvas id="canvas" width="600" height="300"></canvas>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Algorithmus-Name aus Query-Parameter lesen
+    const params = new URLSearchParams(window.location.search);
+    const algorithm = params.get('algo');
+
+    // SSE-Verbindung zum Backend
+    const evtSource = new EventSource(`/api/compare/visualizer/${algorithm}`);
+
+    evtSource.onmessage = function(e) {
+        const arr = JSON.parse(e.data);
+        drawArray(arr);
+    };
+
+    function drawArray(arr) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const w = canvas.width / arr.length;
+
+        for (let i = 0; i < arr.length; i++) {
+            ctx.fillStyle = 'steelblue';
+            ctx.fillRect(i * w, canvas.height - arr[i] * 20, w - 2, arr[i] * 20);
+        }
+    }
+</script>
+</body>
+</html>
