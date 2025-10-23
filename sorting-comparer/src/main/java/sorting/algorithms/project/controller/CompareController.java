@@ -35,23 +35,22 @@ public class CompareController {
     }
 
     // 🔹 Verfügbare Algorithmen abrufen
-    // --- START DER ÄNDERUNG ---
-    // (Rückgabetyp von List<String> zu List<AlgorithmInfo> geändert)
     @GetMapping("/algorithms")
     public List<AlgorithmInfo> availableAlgorithms() {
         return sortingService.getAvailableAlgorithms();
     }
-    // --- ENDE DER ÄNDERUNG ---
 
 
     // 🔹 Datensätze abrufen
     @GetMapping("/datasets")
     public Map<String, List<Integer>> getDatasets(
-            @RequestParam(required = false, defaultValue = "1000") int count) {
+            // --- HIER DIE ÄNDERUNG: Standardwert auf 5 gesetzt (passend zum Frontend) ---
+            @RequestParam(required = false, defaultValue = "5") int count) {
 
         Map<String, List<Integer>> sets = new LinkedHashMap<>();
 
-        final int ELEMENT_COUNT = Math.max(100, Math.min(count, 1000000));
+        // --- HIER DIE ÄNDERUNG: min(count, 5) ---
+        final int ELEMENT_COUNT = Math.max(5, Math.min(count, 1000000));
         final int MAX_VALUE = ELEMENT_COUNT - 1;
 
         // Liste 1: Aufsteigend
@@ -68,10 +67,13 @@ public class CompareController {
 
         // Liste 3: Halbsortiert
         List<Integer> halfSorted = new ArrayList<>(ascending);
-        List<Integer> secondHalf = new ArrayList<>(halfSorted.subList(ELEMENT_COUNT / 2, ELEMENT_COUNT));
-        Collections.shuffle(secondHalf);
-        for (int i = 0; i < secondHalf.size(); i++) {
-            halfSorted.set(ELEMENT_COUNT / 2 + i, secondHalf.get(i));
+        // Stelle sicher, dass die Liste groß genug für die Teilung ist
+        if (ELEMENT_COUNT >= 2) {
+            List<Integer> secondHalf = new ArrayList<>(halfSorted.subList(ELEMENT_COUNT / 2, ELEMENT_COUNT));
+            Collections.shuffle(secondHalf);
+            for (int i = 0; i < secondHalf.size(); i++) {
+                halfSorted.set(ELEMENT_COUNT / 2 + i, secondHalf.get(i));
+            }
         }
 
         // Liste 4: Vollständig unsortiert
@@ -90,14 +92,21 @@ public class CompareController {
     public SseEmitter visualize(@PathVariable String algorithm,
                                 @RequestParam(required = false) String dataset,
                                 @RequestParam(required = false) String input,
-                                @RequestParam(required = false, defaultValue = "1") int speed) {
+                                @RequestParam(required = false, defaultValue = "1") int speed,
+                                // --- HIER IST DIE ÄNDERUNG: 'count' Parameter hinzugefügt ---
+                                @RequestParam(required = false, defaultValue = "5") int count
+    ) {
 
         SseEmitter emitter = new SseEmitter(0L);
         SortingAlgorithm algo = sortingService.getAlgorithmByName(algorithm);
 
-        List<Integer> inputData = sortingService.getDatasetByName(algorithm);
+        // Standard-Daten (falls nichts anderes angegeben)
+        // --- HIER IST DIE ÄNDERUNG: 'count' wird an getDatasets übergeben ---
+        List<Integer> inputData = this.getDatasets(count).getOrDefault("unsorted", new ArrayList<>());
+
 
         if (input != null && !input.isEmpty()) {
+            // Wenn 'input' (rohe JSON-Daten) bereitgestellt wird, hat dies Vorrang
             try {
                 String decoded = URLDecoder.decode(input, StandardCharsets.UTF_8.name());
                 ObjectMapper mapper = new ObjectMapper();
@@ -107,10 +116,20 @@ public class CompareController {
                 e.printStackTrace();
             }
         } else if (dataset != null && !dataset.isEmpty()) {
-            Map<String, List<Integer>> sets = this.getDatasets(1000);
+            // Wenn 'dataset' (z.B. "sorted", "reverse") bereitgestellt wird, überschreibt dies den Standard
+            // --- HIER IST DIE ÄNDERUNG: 'count' wird an getDatasets übergeben ---
+            Map<String, List<Integer>> sets = this.getDatasets(count);
             List<Integer> ds = sets.get(dataset);
             if (ds != null) inputData = new ArrayList<>(ds);
+        } else {
+            // Fallback, wenn weder 'input' noch 'dataset' da sind, aber 'algo.getData()'
+            // (Dieser Teil war in deinem Code, aber nicht ganz aktiv, ich lasse ihn zur Sicherheit drin)
+            List<Integer> algoData = sortingService.getDatasetByName(algorithm);
+            if (algoData != null && !algoData.isEmpty() && inputData.isEmpty()) {
+                inputData = algoData;
+            }
         }
+
 
         AtomicBoolean active = new AtomicBoolean(true);
 

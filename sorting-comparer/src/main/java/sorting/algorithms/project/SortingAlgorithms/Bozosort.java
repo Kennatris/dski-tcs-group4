@@ -18,7 +18,7 @@ public class Bozosort implements SortingAlgorithm {
 
 	@Override
 	public String getBestCase() {
-		return "O(n)";
+		return "O(1)";
 	}
 
 	@Override

@@ -19,6 +19,9 @@
     const algorithm = params.get('algo');
     const dataset = params.get('dataset');
     const speed = params.get('speed');
+    // --- NEUE ÄNDERUNG ---
+    const count = params.get('count'); // Lese den neuen 'count' Parameter
+    // --- ENDE NEU ---
 
     // URL für EventSource dynamisch bauen
     let url = `/api/compare/visualizer/${algorithm}`;
@@ -29,6 +32,12 @@
     if (speed) {
         queryParams.push(`speed=${speed}`);
     }
+    // --- NEUE ÄNDERUNG ---
+    if (count) {
+        queryParams.push(`count=${encodeURIComponent(count)}`); // Füge 'count' zur API-URL hinzu
+    }
+    // --- ENDE NEU ---
+
     if (queryParams.length > 0) {
         url += `?${queryParams.join('&')}`;
     }
@@ -37,7 +46,12 @@
     let startTime = null;
     let timerId = null;
     let lastReceivedData = null;
-    let isFinished = false; // Flag für Beendigung
+    let isFinished = false;
+
+    // Variablen für Änderungs-Hervorhebung
+    let previousArr = [];
+    let lastChangedIndices = [];
+    const HIGHLIGHT_COUNT = 6;
 
     function updateElapsedTime() {
         if (!startTime || isFinished) return;
@@ -56,13 +70,15 @@
         statusElement.textContent = 'Status: Running... Elapsed: 0.0s';
         timerId = setInterval(updateElapsedTime, 100);
         lastReceivedData = null;
-        isFinished = false; // Zurücksetzen bei neuer Verbindung
+        isFinished = false;
+
+        previousArr = [];
+        lastChangedIndices = [];
     };
 
     // onmessage Handler
     evtSource.onmessage = function(e) {
         if (isFinished) {
-            // console.log("Skipping message, already finished.");
             return;
         }
         if (e.data === lastReceivedData) {
@@ -72,20 +88,40 @@
 
         try {
             const arr = JSON.parse(e.data);
-            drawArray(arr);
+
+            if (previousArr.length === 0) {
+                previousArr = [...arr];
+            }
+
+            const currentChanged = new Set();
+            for (let i = 0; i < arr.length; i++) {
+                if (arr[i] !== previousArr[i]) {
+                    lastChangedIndices.push(i);
+                    currentChanged.add(i);
+                }
+            }
+
+            while (lastChangedIndices.length > HIGHLIGHT_COUNT) {
+                lastChangedIndices.shift();
+            }
+
+            previousArr = [...arr];
+
+            drawArray(arr, new Set(lastChangedIndices), false);
+
         } catch (error) {
             console.error("Failed to parse SSE data:", error, e.data);
             statusElement.textContent = 'Status: Error parsing data!';
             if (timerId) clearInterval(timerId);
-            isFinished = true; // Bei Fehler als beendet markieren
+            isFinished = true;
             evtSource.close();
         }
     };
 
     // onerror Handler
     evtSource.onerror = function(event) {
-        isFinished = true; // Sicherstellen, dass Flag gesetzt ist
-        if (timerId) clearInterval(timerId); // Timer immer stoppen
+        isFinished = true;
+        if (timerId) clearInterval(timerId);
 
         if (evtSource.readyState === EventSource.CLOSED || event.eventPhase === EventSource.CLOSED) {
             if (startTime) {
@@ -94,8 +130,14 @@
             } else {
                 statusElement.textContent = 'Status: Finished (connection closed)';
             }
-            // Letzten Zustand nochmal zeichnen
-            if(lastReceivedData) { try { drawArray(JSON.parse(lastReceivedData)); } catch(e){ console.error("Error drawing final state:", e); } }
+
+            if(lastReceivedData) {
+                try {
+                    drawArray(JSON.parse(lastReceivedData), new Set(), true);
+                } catch(e){
+                    console.error("Error drawing final state:", e);
+                }
+            }
         } else {
             statusElement.textContent = 'Status: Error or disconnected.';
             console.error("SSE Error:", event);
@@ -107,27 +149,33 @@
     };
 
 
-    function drawArray(arr) {
-        // Die Prüfung 'if (isFinished)' ist hier nicht unbedingt nötig, da 'onmessage' blockiert,
-        // schadet aber auch nicht als zusätzliche Sicherheit.
-
+    /**
+     * @param {number[]} arr Das zu zeichnende Array
+     * @param {Set<number>} changedSet Ein Set von Indizes, die rot hervorgehoben werden sollen
+     * @param {boolean} isFinishedState Wenn true, wird alles grün gezeichnet
+     */
+    function drawArray(arr, changedSet, isFinishedState = false) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const w = canvas.width / arr.length;
-        const maxHeight = canvas.height; // Nutzt die (leicht reduzierte) Canvas-Höhe
+        const maxHeight = canvas.height;
 
         let maxValue = 0;
         if (arr.length > 0) {
-            // Sicherere Methode für große Arrays
             maxValue = arr.reduce((max, val) => Math.max(max, val), arr[0]);
         }
-        // Verhindert Division durch Null, falls alle Werte 0 sind oder Array leer ist
         if (maxValue === 0) maxValue = 1;
 
         for (let i = 0; i < arr.length; i++) {
-            ctx.fillStyle = 'steelblue';
-            // Relative Skalierung (wie bereits vorhanden)
-            const barHeight = (arr[i] / maxValue) * maxHeight * 0.98; // Kleiner Faktor für Rand oben
-            // Zeichne von unten nach oben
+
+            if (isFinishedState) {
+                ctx.fillStyle = '#28a745'; // Grün für "Fertig"
+            } else if (changedSet.has(i)) {
+                ctx.fillStyle = '#dc3545'; // Rot (Hervorhebung)
+            } else {
+                ctx.fillStyle = 'steelblue'; // Standard Blau
+            }
+
+            const barHeight = (arr[i] / maxValue) * maxHeight * 0.98;
             ctx.fillRect(i * w, canvas.height - barHeight, w - 2, barHeight);
         }
     }

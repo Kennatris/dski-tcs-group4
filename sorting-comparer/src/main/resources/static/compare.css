@@ -85,7 +85,7 @@ iframe {
     margin-top: 0;
 }
 
-/* --- NEUE ÄNDERUNGEN --- */
+/* --- ÄNDERUNGEN FÜR PROGRESSBAR-ANIMATION --- */
 
 /* Stil für den roten Abbruch-Button */
 #compareBtn.cancel-btn {
@@ -94,12 +94,61 @@ iframe {
     border-color: #dc3545;
 }
 
-/* Stil für die Progressbar */
+/* Keyframes für die Streifen-Animation */
+@keyframes progress-bar-stripes {
+    from { background-position: 1rem 0; }
+    to { background-position: 0 0; }
+}
+
+/* Stil für die Progressbar (Basis) */
 #progressBar {
     width: 60%;
     margin-top: 1rem;
-    height: 10px;
-    /* Zentriert die Progressbar unter dem Button */
+    height: 12px; /* Etwas höher für bessere Sichtbarkeit */
     margin-left: auto;
     margin-right: auto;
+
+    /* Setzt das Standard-Browser-Aussehen zurück */
+    appearance: none;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    overflow: hidden; /* Stellt sicher, dass Animation innen bleibt */
+}
+
+/* Hintergrund der Progressbar (WebKit/Chrome/Safari) */
+#progressBar::-webkit-progress-bar {
+    background-color: #f5f5f5;
+    border-radius: 5px;
+}
+
+/* Der animierte Balken (WebKit/Chrome/Safari) */
+#progressBar::-webkit-progress-value {
+    background-color: #007bff; /* Blau, passend zum .loading Text */
+
+    /* Gestreiftes Muster */
+    background-image: linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%,
+    transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%,
+    transparent 75%, transparent);
+    background-size: 1rem 1rem;
+
+    /* Die Animation */
+    animation: progress-bar-stripes 1s linear infinite;
+
+    transition: width 0.1s ease; /* Sanfter Übergang beim Wert-Update */
+}
+
+/* Der animierte Balken (Firefox) */
+#progressBar::-moz-progress-bar {
+    background-color: #007bff;
+
+    /* Gestreiftes Muster */
+    background-image: linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%,
+    transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%,
+    transparent 75%, transparent);
+    background-size: 1rem 1rem;
+
+    /* Die Animation */
+    animation: progress-bar-stripes 1s linear infinite;
+
+    transition: width 0.1s ease;
 }
