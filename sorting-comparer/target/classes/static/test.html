@@ -5,6 +5,7 @@
     <title>Sortieralgorithmen vergleichen</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="compare.css" />
+
 </head>
 <body>
 <h1>Vergleich von zwei Sortieralgorithmen</h1>
@@ -43,6 +44,7 @@
 <div class="center">
     <button id="compareBtn">Vergleichen</button>
     <p id="status" class="loading" style="display:none;">Sortiere Daten...</p>
+    <progress id="progressBar" value="0" max="100" style="display:none;"></progress>
 </div>
 
 <table id="resultTable" style="display:none">
@@ -68,46 +70,34 @@
      */
 
     let datasets = {};
-
-    // --- START DER ÄNDERUNG (Neuer Speicher für Algo-Details) ---
-    // Speichert alle Algorithmus-Details (Name, WorstCase etc.)
     let algorithmDetails = {};
-    // --- ENDE DER ÄNDERUNG ---
+
+    // --- NEU: Status-Variablen für Abbruch-Logik ---
+    let isComparing = false;
+    let currentCompareController = null;
+    let progressInterval = null;
+    // --- ENDE NEU ---
 
 
     // --- 1️⃣ Lade verfügbare Sortieralgorithmen vom Backend ---
-    /**
-     * loadAlgorithms()
-     * - (NEU) Ruft jetzt eine Liste von Objekten ab (Name, WorstCase, ...)
-     * - (NEU) Speichert diese Details in 'algorithmDetails'
-     * - Füllt die Select-Boxen
-     */
     async function loadAlgorithms() {
         try {
             const res = await fetch('/api/compare/algorithms');
             if (!res.ok) throw new Error(`Fehler beim Laden der Algorithmen: ${res.status} ${res.statusText}`);
 
-            // Erwartet: JSON-Antwort, z.B.
-            // [ { "name": "BubbleSort", "worstCase": "O(n²)", ... }, ... ]
             const algos = await res.json();
-
-            // Referenzen auf die Select-Elemente
             const selectA = document.getElementById('algoA');
             const selectB = document.getElementById('algoB');
             selectA.innerHTML = '';
             selectB.innerHTML = '';
-
-            // NEU: algorithmDetails leeren
             algorithmDetails = {};
 
-            // Neue Optionen hinzufügen
             for (const algo of algos) {
-                // NEU: Details im globalen Objekt speichern
                 algorithmDetails[algo.name] = algo;
 
                 const optionA = document.createElement('option');
-                optionA.value = algo.name; // Wert ist der Name
-                optionA.textContent = algo.name; // Text ist der Name
+                optionA.value = algo.name;
+                optionA.textContent = algo.name;
                 selectA.appendChild(optionA);
 
                 const optionB = document.createElement('option');
@@ -129,12 +119,7 @@
     }
 
     // --- 2️⃣ Lade Datensätze vom Backend ---
-    /**
-     * loadDatasets()
-     * - Validiert die Elementanzahl. Bei Fehlern wird 100 verwendet und ein Alert gezeigt.
-     */
     async function loadDatasets() {
-
         const countInput = document.getElementById('elementCount');
         let elementCount = parseInt(countInput.value, 10);
         const minCount = 100;
@@ -170,40 +155,83 @@
         }
     }
 
-    // --- 3️⃣ Vergleich ausführen ---
+    // --- 3️⃣ Vergleichs-Logik (Überarbeitet) ---
+
     /**
-     * compare()
-     * - (NEU) Prüft die Worst-Case-Laufzeit und Elementanzahl VOR dem Fetch.
-     * - (NEU) Zeigt eine confirm()-Warnung, wenn die Kombination langsam sein könnte.
+     * NEU: Funktion zum Zurücksetzen des UI-Status
      */
-    async function compare() {
+    function resetUI() {
         const status = document.getElementById('status');
+        const compareBtn = document.getElementById('compareBtn');
+        const progressBar = document.getElementById('progressBar');
 
-        // --- START DER ÄNDERUNG (Warnungs-Logik) ---
+        // Button zurücksetzen
+        isComparing = false;
+        compareBtn.textContent = 'Vergleichen';
+        compareBtn.classList.remove('cancel-btn');
 
-        // 1. Daten für die Warnung sammeln
+        // Anzeigen ausblenden
+        status.style.display = 'none';
+        progressBar.style.display = 'none';
+        progressBar.value = 0;
+
+        // Intervalle löschen
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+
+        // Controller zurücksetzen
+        currentCompareController = null;
+    }
+
+    /**
+     * NEU: Funktion zum Abbrechen des Vergleichs
+     */
+    function cancelCompare() {
+        if (currentCompareController) {
+            currentCompareController.abort();
+            console.log("Vergleich abgebrochen.");
+        }
+        // resetUI() wird im 'finally' Block von startCompare() aufgerufen.
+    }
+
+
+    /**
+     * NEU: Umbenannt zu startCompare(), enthält die Hauptlogik
+     */
+    async function startCompare() {
+        // Referenzen holen
+        const status = document.getElementById('status');
+        const compareBtn = document.getElementById('compareBtn');
+        const progressBar = document.getElementById('progressBar');
+        const table = document.getElementById('resultTable');
+        const frameA = document.getElementById('frameA');
+        const frameB = document.getElementById('frameB');
+
+        // --- 1. Vorherige Ergebnisse zurücksetzen ---
+        table.style.display = 'none';
+        frameA.src = 'about:blank';
+        frameB.src = 'about:blank';
+        if (table.querySelector('tbody')) {
+            table.querySelector('tbody').innerHTML = '';
+        }
+
+        // --- 2. Warnungs-Logik (unverändert) ---
         const algoA_name = document.getElementById('algoA').value;
         const algoB_name = document.getElementById('algoB').value;
         const elementCount = parseInt(document.getElementById('elementCount').value, 10);
-
         const detailsA = algorithmDetails[algoA_name];
         const detailsB = algorithmDetails[algoB_name];
-
         let showWarning = false;
         let warningReason = "";
 
-        // Prüfe, ob die Details geladen wurden (sollte immer der Fall sein)
         if (detailsA && detailsB) {
             const worstA = detailsA.worstCase;
             const worstB = detailsB.worstCase;
-
-            // Definition von "langsamen" Komplexitäten
             const slowComplexities = ["O(n²)", "O(n^(3/2))"];
-
-            // Definition von "sehr großen" Datenmengen (für O(n²) usw.)
             const largeN = 20000;
 
-            // Prüflogik
             if (worstA.includes("∞") || worstB.includes("∞")) {
                 showWarning = true;
                 warningReason = "Ein Algorithmus mit O(∞) (z.B. BogoSort) wird fast sicher nicht fertig.";
@@ -216,25 +244,36 @@
             }
         }
 
-        // 2. Warnung anzeigen und ggf. abbrechen
         if (showWarning) {
             const proceed = confirm(`WARNUNG:\n${warningReason}\n\Möchten Sie den Vergleich trotzdem starten?`);
             if (!proceed) {
-                status.style.display = 'none'; // Status ausblenden
-                return; // Funktion abbrechen
+                return; // Abbruch vor dem Start
             }
         }
-        // --- ENDE DER ÄNDERUNG (Warnungs-Logik) ---
 
+        // --- 3. UI für "Laden" vorbereiten ---
+        isComparing = true;
+        currentCompareController = new AbortController();
 
-        // Ladehinweis anzeigen (jetzt erst, nach der Bestätigung)
         status.style.display = 'inline';
         status.textContent = "Sortiere Daten...";
+        compareBtn.textContent = 'Abbruch';
+        compareBtn.classList.add('cancel-btn');
 
+        progressBar.style.display = 'block';
+        progressBar.value = 0;
+
+        // Startet die Fake-Progressbar
+        progressInterval = setInterval(() => {
+            if (progressBar.value < 90) {
+                progressBar.value += 2; // Langsamer Anstieg
+            }
+        }, 100);
+
+
+        // --- 4. Fetch-Logik ---
         try {
             const datasetKey = document.getElementById('datasetSelect').value;
-
-            // Validierung für Speed (von vorheriger Anfrage)
             const speedInput = document.getElementById('vizSpeed');
             let vizSpeed = parseInt(speedInput.value, 10);
             const minSpeed = 0;
@@ -249,27 +288,29 @@
             const inputData = datasets[datasetKey];
             if (!inputData) {
                 alert("Fehler: Kein Datensatz ausgewählt!");
+                resetUI(); // UI zurücksetzen bei Fehler
                 return;
             }
 
-            // Payload (unverändert)
             const payload = {
                 algorithms: [algoA_name, algoB_name],
                 input: inputData
             };
 
-            // POST-Request (unverändert)
+            // Fetch mit Abbruch-Signal
             const res = await fetch('/api/compare', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                signal: currentCompareController.signal // Signal für Abbruch
             });
 
             if (!res.ok) throw new Error(`Fehler beim Vergleich: ${res.status} ${res.statusText}`);
 
-            // Ergebnis-Tabelle füllen (unverändert)
+            // Progressbar auf fast fertig setzen, da Fetch abgeschlossen ist
+            progressBar.value = 95;
+
             const data = await res.json();
-            const table = document.getElementById('resultTable');
             const tbody = table.querySelector('tbody');
             tbody.innerHTML = '';
 
@@ -290,23 +331,38 @@
 
             table.style.display = (data && data.length) ? 'table' : 'none';
 
-            // IFrames aktualisieren (unverändert)
-            const frameA = document.getElementById('frameA');
-            const frameB = document.getElementById('frameB');
-
+            // IFrames aktualisieren
             frameA.src = `/visualizer.html?algo=${encodeURIComponent(algoA_name)}&dataset=${encodeURIComponent(datasetKey)}&speed=${vizSpeed}`;
             frameB.src = `/visualizer.html?algo=${encodeURIComponent(algoB_name)}&dataset=${encodeURIComponent(datasetKey)}&speed=${vizSpeed}`;
 
+            progressBar.value = 100; // Fertig
+
         } catch (err) {
-            console.error("Fehler beim Vergleich:", err);
-            alert("Fehler beim Vergleich: " + (err.message || err));
+            // NEU: Abfrage auf Abbruch-Fehler
+            if (err.name === 'AbortError') {
+                console.log("Fetch abgebrochen.");
+                // Tabelle und iFrames wurden bereits am Anfang von startCompare() geleert.
+            } else {
+                console.error("Fehler beim Vergleich:", err);
+                alert("Fehler beim Vergleich: " + (err.message || err));
+            }
         } finally {
-            status.style.display = 'none';
+            // NEU: resetUI() wird immer aufgerufen, egal ob Erfolg, Fehler oder Abbruch
+            resetUI();
         }
     }
 
     // --- Event-Listener und Initialisierung ---
-    document.getElementById('compareBtn').addEventListener('click', compare);
+
+    // NEU: Der Button-Listener prüft jetzt den Status
+    document.getElementById('compareBtn').addEventListener('click', () => {
+        if (isComparing) {
+            cancelCompare();
+        } else {
+            startCompare();
+        }
+    });
+
     document.getElementById('elementCount').addEventListener('change', loadDatasets);
 
     // Initiales Laden

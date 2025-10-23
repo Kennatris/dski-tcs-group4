@@ -18,7 +18,7 @@ public class SortResult {
                       String worstCase, String averageCase, String bestCase) {
         this.algorithm = algorithm;
         this.durationMillis = durationMillis;
-        this.steps = steps; // UM KORRIGIERT
+        this.steps = steps;
         this.unsorted = unsorted;
         this.sorted = sorted;
         this.worstCase = worstCase;

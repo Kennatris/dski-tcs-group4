@@ -84,3 +84,22 @@ iframe {
 .options-grid label {
     margin-top: 0;
 }
+
+/* --- NEUE ÄNDERUNGEN --- */
+
+/* Stil für den roten Abbruch-Button */
+#compareBtn.cancel-btn {
+    background-color: #dc3545; /* Rot */
+    color: white;
+    border-color: #dc3545;
+}
+
+/* Stil für die Progressbar */
+#progressBar {
+    width: 60%;
+    margin-top: 1rem;
+    height: 10px;
+    /* Zentriert die Progressbar unter dem Button */
+    margin-left: auto;
+    margin-right: auto;
+}
