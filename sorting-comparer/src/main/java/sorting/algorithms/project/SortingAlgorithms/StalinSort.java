@@ -2,8 +2,12 @@ package sorting.algorithms.project.SortingAlgorithms;
 
 import org.springframework.stereotype.Component;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
+import sorting.algorithms.project.dto.SortStep;
 
 @Component
 public class StalinSort implements SortingAlgorithm {
@@ -37,47 +41,82 @@ public class StalinSort implements SortingAlgorithm {
 
     @Override
     public List<Integer> getData() {
-        return dataSet;
+        // Sicherstellen, dass dataSet nicht null ist
+        return dataSet != null ? dataSet : SortingAlgorithm.super.getData();
     }
 
     @Override
     public List<Integer> sort(List<Integer> input) {
+        // Wichtig: StalinSort modifiziert die Liste stark (durch remove).
+        // Für 'sort' immer eine Kopie erstellen!
         List<Integer> copy = new ArrayList<>(input);
-        dataSet = new ArrayList<>(copy);
+        dataSet = new ArrayList<>(input); // Original speichern
         steps = 0;
-        stalinSort(copy, step -> {});
-        return copy;
+        stalinSort(copy, (SortStep step) -> {}); // Auf Kopie arbeiten
+        return copy; // Modifizierte Kopie zurückgeben
     }
 
     @Override
-    public void sortWithCallback(List<Integer> input, Consumer<List<Integer>> stepCallback) {
-        dataSet = new ArrayList<>(input);
+    public void sortWithCallback(List<Integer> input, Consumer<SortStep> stepCallback) {
+        // Hier wird die Originalliste modifiziert! Stellen Sie sicher, dass dies beabsichtigt ist.
+        // Wenn nicht, sollte auch hier eine Kopie erstellt werden.
+        dataSet = new ArrayList<>(input); // Kopie des Originals für dataSet
         steps = 0;
-        stalinSort(input, stepCallback);
+        // Sende initialen Zustand
+        stepCallback.accept(new SortStep(new ArrayList<>(input), Collections.emptySet(), Collections.emptySet()));
+        stalinSort(input, stepCallback); // Modifiziert 'input' direkt
+        // Sende finalen Zustand
+        stepCallback.accept(new SortStep(new ArrayList<>(input), Collections.emptySet(), Collections.emptySet()));
     }
 
-    // 🔹 Interne StalinSort-Implementierung mit Callback (KORRIGIERT)
-    // Diese Version arbeitet "in-place", indem sie Elemente entfernt.
-    private void stalinSort(List<Integer> arr, Consumer<List<Integer>> stepCallback) {
-        if (arr.isEmpty()) return;
+    /**
+     * Führt StalinSort "in-place" aus, indem jedes Element entfernt wird,
+     * das kleiner ist als sein Vorgänger.
+     * Meldet jeden Vergleich und jede Entfernung.
+     * @param arr Die zu "sortierende" Liste (wird modifiziert und potenziell verkürzt).
+     * @param stepCallback Der Callback für die Visualisierung.
+     */
+    private void stalinSort(List<Integer> arr, Consumer<SortStep> stepCallback) {
+        if (arr.isEmpty()) {
+            stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet())); // Endzustand
+            return;
+        }
 
-        // Sende den Startzustand
-        stepCallback.accept(new ArrayList<>(arr));
+        int i = 1; // Beginne Prüfung beim zweiten Element
+        while (i < arr.size()) { // Wichtig: arr.size() kann sich ändern!
+            Set<Integer> accessed = new HashSet<>();
+            Set<Integer> changed = new HashSet<>(); // Wird nur bei remove genutzt
 
-        int i = 1;
-        while (i < arr.size()) {
-            steps++; // Jeder Vergleich zählt
+            accessed.add(i);     // Aktuelles Element
+            accessed.add(i - 1); // Vorheriges Element
+            steps++; // Zähle Vergleich
 
-            // Wenn das aktuelle Element kleiner ist als das vorherige, "eliminiere" es
+            // Sende Zustand *vor* der potenziellen Entfernung
+            stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessed), new HashSet<>(changed)));
+
             if (arr.get(i) < arr.get(i - 1)) {
                 arr.remove(i);
-                // Sende Snapshot nach der Entfernung
-                stepCallback.accept(new ArrayList<>(arr));
-                // 'i' wird nicht erhöht, da das nächste Element an die Position 'i' gerückt ist
+                // Wichtig: 'i' wird NICHT erhöht, da das nächste Element an Position 'i' nachrückt
+                steps++; // Zähle Entfernung als Schritt (optional)
+
+                // Indizes ab 'i' haben sich geändert (nicht direkt visualisierbar,
+                // aber der Zustand des Arrays zeigt es)
+                // Man könnte 'changed' hier leer lassen oder alle ab 'i' markieren.
+                // Hier lassen wir es leer, da der Array-Zustand die Änderung zeigt.
+
+                // Sende Zustand *nach* der Entfernung
+                stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, changed));
+
             } else {
-                // Korrekte Reihenfolge, gehe zum nächsten Element
+                // Element ist in Ordnung, gehe zum nächsten
                 i++;
+                // Sende Zustand nach dem Weiterrücken (optional, wenn jeder Schritt sichtbar sein soll)
+                // stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, changed));
             }
+            // Sende Schritt *nach* der Aktion (entweder remove oder i++)
+            // Dieser Schritt ist wichtig, wenn i++ keinen eigenen Send hat.
+            // Entfernt, da nach remove bereits gesendet wird und bei i++ oben optional.
+            // stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, changed));
         }
     }
 }

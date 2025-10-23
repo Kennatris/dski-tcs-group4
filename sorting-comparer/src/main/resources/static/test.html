@@ -64,21 +64,16 @@
 </table>
 
 <script>
-    /**
-     * Hauptskript für die Seite "Vergleich von zwei Sortieralgorithmen".
-     * ...
-     */
-
     let datasets = {};
     let algorithmDetails = {};
 
-    // --- Status-Variablen für Abbruch-Logik ---
     let isComparing = false;
     let currentCompareController = null;
     let progressInterval = null;
 
-
-    // --- 1️⃣ Lade verfügbare Sortieralgorithmen vom Backend ---
+    /**
+     * Lädt die Liste der verfügbaren Algorithmen vom Backend.
+     */
     async function loadAlgorithms() {
         try {
             const res = await fetch('/api/compare/algorithms');
@@ -117,13 +112,10 @@
         }
     }
 
-    // --- 2️⃣ Lade Datensätze vom Backend ---
     /**
-     * loadDatasets()
-     * - Validiert die Elementanzahl.
+     * Lädt die Datensätze basierend auf der gewählten Elementanzahl.
      */
     async function loadDatasets() {
-
         const countInput = document.getElementById('elementCount');
         let elementCount = parseInt(countInput.value, 10);
 
@@ -160,10 +152,8 @@
         }
     }
 
-    // --- 3️⃣ Vergleichs-Logik (Überarbeitet) ---
-
     /**
-     * Funktion zum Zurücksetzen des UI-Status
+     * Setzt die Benutzeroberfläche in den Ausgangszustand zurück.
      */
     function resetUI() {
         const status = document.getElementById('status');
@@ -187,7 +177,7 @@
     }
 
     /**
-     * Funktion zum Abbrechen des Vergleichs
+     * Bricht einen laufenden Vergleich ab.
      */
     function cancelCompare() {
         if (currentCompareController) {
@@ -196,9 +186,8 @@
         }
     }
 
-
     /**
-     * Hauptlogik für den Vergleich
+     * Startet den Vergleichsprozess.
      */
     async function startCompare() {
         const status = document.getElementById('status');
@@ -208,7 +197,6 @@
         const frameA = document.getElementById('frameA');
         const frameB = document.getElementById('frameB');
 
-        // 1. Vorherige Ergebnisse zurücksetzen
         table.style.display = 'none';
         frameA.src = 'about:blank';
         frameB.src = 'about:blank';
@@ -216,10 +204,8 @@
             table.querySelector('tbody').innerHTML = '';
         }
 
-        // 2. Warnungs-Logik
         const algoA_name = document.getElementById('algoA').value;
         const algoB_name = document.getElementById('algoB').value;
-        // *** HIER wird elementCount gelesen ***
         const elementCount = parseInt(document.getElementById('elementCount').value, 10);
         const detailsA = algorithmDetails[algoA_name];
         const detailsB = algorithmDetails[algoB_name];
@@ -251,7 +237,6 @@
             }
         }
 
-        // 3. UI für "Laden" vorbereiten
         isComparing = true;
         currentCompareController = new AbortController();
 
@@ -269,8 +254,6 @@
             }
         }, 100);
 
-
-        // 4. Fetch-Logik
         try {
             const datasetKey = document.getElementById('datasetSelect').value;
             const speedInput = document.getElementById('vizSpeed');
@@ -328,15 +311,11 @@
 
             table.style.display = (data && data.length) ? 'table' : 'none';
 
-            // --- HIER IST DIE ÄNDERUNG ---
-            // Füge 'count=${elementCount}' zu den iFrame URLs hinzu
             const vizUrlParams = `&dataset=${encodeURIComponent(datasetKey)}&speed=${vizSpeed}&count=${elementCount}`;
-
             frameA.src = `/visualizer.html?algo=${encodeURIComponent(algoA_name)}${vizUrlParams}`;
             frameB.src = `/visualizer.html?algo=${encodeURIComponent(algoB_name)}${vizUrlParams}`;
-            // --- ENDE DER ÄNDERUNG ---
 
-            progressBar.value = 100; // Fertig
+            progressBar.value = 100;
 
         } catch (err) {
             if (err.name === 'AbortError') {
@@ -350,8 +329,6 @@
         }
     }
 
-    // --- Event-Listener und Initialisierung ---
-
     document.getElementById('compareBtn').addEventListener('click', () => {
         if (isComparing) {
             cancelCompare();
@@ -362,7 +339,6 @@
 
     document.getElementById('elementCount').addEventListener('change', loadDatasets);
 
-    // Initiales Laden
     loadAlgorithms();
     loadDatasets();
 </script>

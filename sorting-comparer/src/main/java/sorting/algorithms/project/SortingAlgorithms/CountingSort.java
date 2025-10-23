@@ -2,8 +2,12 @@ package sorting.algorithms.project.SortingAlgorithms;
 
 import org.springframework.stereotype.Component;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
+import sorting.algorithms.project.dto.SortStep;
 
 @Component
 public class CountingSort implements SortingAlgorithm {
@@ -38,7 +42,8 @@ public class CountingSort implements SortingAlgorithm {
 
     @Override
     public List<Integer> getData() {
-        return dataSet;
+        // Sicherstellen, dass dataSet nicht null ist
+        return dataSet != null ? dataSet : SortingAlgorithm.super.getData();
     }
 
     @Override
@@ -46,58 +51,89 @@ public class CountingSort implements SortingAlgorithm {
         List<Integer> copy = new ArrayList<>(input);
         dataSet = new ArrayList<>(copy);
         steps = 0;
-        countingSort(copy, step -> {}); // Default: keine Callback
+        countingSort(copy, (SortStep step) -> {});
         return copy;
     }
 
     @Override
-    public void sortWithCallback(List<Integer> input, Consumer<List<Integer>> stepCallback) {
+    public void sortWithCallback(List<Integer> input, Consumer<SortStep> stepCallback) {
+        dataSet = new ArrayList<>(input);
         steps = 0;
+        // Sende initialen Zustand
+        stepCallback.accept(new SortStep(new ArrayList<>(input), Collections.emptySet(), Collections.emptySet()));
         countingSort(input, stepCallback);
     }
 
-    // 🔹 Interne CountingSort-Implementierung mit Callback
-    private void countingSort(List<Integer> arr, Consumer<List<Integer>> stepCallback) {
+    /**
+     * Führt CountingSort "in-place" aus (modifiziert die Eingabeliste am Ende).
+     * Meldet jeden Schritt beim Kopieren in das finale Array.
+     * Annahme: Nur nicht-negative Zahlen.
+     * @param arr Die zu sortierende Liste.
+     * @param stepCallback Der Callback für die Visualisierung.
+     */
+    private void countingSort(List<Integer> arr, Consumer<SortStep> stepCallback) {
         int n = arr.size();
-        if (n == 0) return;
+        if (n == 0) {
+            stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet()));
+            return;
+        }
 
-        int max = arr.get(0);
+        // Finde Maximum (ohne explizite Visualisierung dieser Phase)
+        int max = 0; // Annahme: Nicht-negative Zahlen
         for (int num : arr) {
-            if (num > max) max = num;
+            if (num < 0) {
+                System.err.println("CountingSort requires non-negative integers.");
+                // Fehlerbehandlung: Beende oder wirf Exception
+                stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet())); // Unveränderter Zustand
+                return;
+            }
+            if (num > max) {
+                max = num;
+            }
         }
 
         int[] output = new int[n];
         int[] count = new int[max + 1];
 
-        // Count occurrences
-        for (int num : arr) {
+        // 1. Zähle Vorkommen (keine Änderung an 'arr', kein Callback)
+        for (int i = 0; i < n; i++) {
+            int num = arr.get(i);
             count[num]++;
-            steps++;
-            // KORREKTUR: Callback entfernt (arr ändert sich hier nicht)
-            // stepCallback.accept(new ArrayList<>(arr));
+            steps++; // Zähle Lesezugriff und Inkrement
         }
 
-        // Position info
+
+        // 2. Kumuliere Zählungen (keine Änderung an 'arr', kein Callback)
         for (int i = 1; i <= max; i++) {
             count[i] += count[i - 1];
-            steps++;
+            steps++; // Zähle Addition
         }
 
-        // Build output
+        // 3. Baue Output-Array (keine Änderung an 'arr', kein Callback)
+        // Von hinten durchgehen, um Stabilität zu gewährleisten
         for (int i = n - 1; i >= 0; i--) {
             int num = arr.get(i);
             output[count[num] - 1] = num;
             count[num]--;
-            steps++;
-            // KORREKTUR: Callback entfernt (arr ändert sich hier nicht)
-            // stepCallback.accept(new ArrayList<>(arr));
+            steps++; // Zähle Lesezugriffe, Dekrement, Schreibzugriff
         }
 
-        // Copy back
+        // 4. Kopiere Output zurück in 'arr' und visualisiere jeden Schritt
         for (int i = 0; i < n; i++) {
-            arr.set(i, output[i]);
-            steps++;
-            stepCallback.accept(new ArrayList<>(arr)); // Diese Visualisierung ist korrekt
+            if (arr.get(i) != output[i]) { // Nur senden, wenn sich was ändert
+                Set<Integer> changed = new HashSet<>();
+                arr.set(i, output[i]);
+                changed.add(i);
+                steps++; // Zähle Schreibzugriff
+                stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), changed));
+            } else {
+                // Optional: Sende auch, wenn nichts geändert wird, um Fortschritt zu zeigen
+                // steps++; // Zähle Vergleich
+                // Set<Integer> accessed = Set.of(i);
+                // stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, Collections.emptySet()));
+            }
         }
+        // Sende finalen Zustand (kann redundant sein)
+        stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet()));
     }
 }

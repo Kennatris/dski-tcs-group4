@@ -2,8 +2,12 @@ package sorting.algorithms.project.SortingAlgorithms;
 
 import org.springframework.stereotype.Component;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
+import sorting.algorithms.project.dto.SortStep;
 
 @Component
 public class GnomeSort implements SortingAlgorithm {
@@ -38,7 +42,8 @@ public class GnomeSort implements SortingAlgorithm {
 
     @Override
     public List<Integer> getData() {
-        return dataSet;
+        // Sicherstellen, dass dataSet nicht null ist
+        return dataSet != null ? dataSet : SortingAlgorithm.super.getData();
     }
 
     @Override
@@ -46,39 +51,61 @@ public class GnomeSort implements SortingAlgorithm {
         List<Integer> copy = new ArrayList<>(input);
         dataSet = new ArrayList<>(copy);
         steps = 0;
-        gnomeSort(copy, step -> {}); // Default: keine Callback
+        gnomeSort(copy, (SortStep step) -> {});
         return copy;
     }
 
     @Override
-    public void sortWithCallback(List<Integer> input, Consumer<List<Integer>> stepCallback) {
+    public void sortWithCallback(List<Integer> input, Consumer<SortStep> stepCallback) {
+        dataSet = new ArrayList<>(input);
         steps = 0;
+        // Sende initialen Zustand
+        stepCallback.accept(new SortStep(new ArrayList<>(input), Collections.emptySet(), Collections.emptySet()));
         gnomeSort(input, stepCallback);
     }
 
-    // 🔹 Interne GnomeSort-Implementierung mit Callback
-    private void gnomeSort(List<Integer> arr, Consumer<List<Integer>> stepCallback) {
-        int index = 1;
-        while (index < arr.size()) {
-            steps++; // Vergleich zwischen arr[index-1] und arr[index]
+    /**
+     * Führt GnomeSort (Stupid Sort) "in-place" aus.
+     * Meldet jeden Vergleich und jeden Swap.
+     * @param arr Die zu sortierende Liste.
+     * @param stepCallback Der Callback für die Visualisierung.
+     */
+    private void gnomeSort(List<Integer> arr, Consumer<SortStep> stepCallback) {
+        int index = 0; // Starte bei 0 für den ersten Vergleich bei index 1
+        int n = arr.size();
 
-            if (arr.get(index - 1) <= arr.get(index)) {
+        while (index < n) {
+            Set<Integer> accessed = new HashSet<>();
+            Set<Integer> changed = new HashSet<>();
+
+            if (index == 0) {
+                // Am Anfang gibt es nichts zu vergleichen, gehe einfach weiter
+                accessed.add(index); // Markiere aktuellen Index als "betrachtet"
                 index++;
             } else {
-                // Swap
-                int tmp = arr.get(index - 1);
-                arr.set(index - 1, arr.get(index));
-                arr.set(index, tmp);
-                steps++; // Swap zählt auch als Schritt
-                // KORREKTUR: Callback hier entfernt
+                accessed.add(index - 1); // Für get(index - 1)
+                accessed.add(index);     // Für get(index)
+                steps++; // Zähle Vergleich
 
-                index--;
-                if (index == 0) {
-                    index = 1;
+                if (arr.get(index - 1) <= arr.get(index)) {
+                    // Elemente sind in Ordnung, gehe einen Schritt vorwärts
+                    index++;
+                } else {
+                    // Elemente tauschen
+                    int temp = arr.get(index - 1);
+                    arr.set(index - 1, arr.get(index));
+                    arr.set(index, temp);
+                    changed.add(index - 1);
+                    changed.add(index);
+                    steps++; // Zähle Swap (optional)
+                    // Gehe einen Schritt zurück
+                    index--;
                 }
             }
-            // KORREKTUR: Callback nach außen verschoben, sendet bei jeder Iteration
-            stepCallback.accept(new ArrayList<>(arr));
+            // Sende Zustand nach der Aktion (Vorrücken oder Tauschen/Zurückgehen)
+            stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, changed));
         }
+        // Sende finalen Zustand (kann redundant sein)
+        stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet()));
     }
 }

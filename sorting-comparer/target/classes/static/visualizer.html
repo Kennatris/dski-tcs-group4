@@ -14,45 +14,39 @@
     const ctx = canvas.getContext('2d');
     const statusElement = document.getElementById('status');
 
-    // Parameter aus Query-Parametern lesen
     const params = new URLSearchParams(window.location.search);
     const algorithm = params.get('algo');
     const dataset = params.get('dataset');
     const speed = params.get('speed');
-    // --- NEUE ÄNDERUNG ---
-    const count = params.get('count'); // Lese den neuen 'count' Parameter
-    // --- ENDE NEU ---
+    const count = params.get('count');
 
-    // URL für EventSource dynamisch bauen
     let url = `/api/compare/visualizer/${algorithm}`;
     const queryParams = [];
-    if (dataset) {
-        queryParams.push(`dataset=${encodeURIComponent(dataset)}`);
-    }
-    if (speed) {
-        queryParams.push(`speed=${speed}`);
-    }
-    // --- NEUE ÄNDERUNG ---
-    if (count) {
-        queryParams.push(`count=${encodeURIComponent(count)}`); // Füge 'count' zur API-URL hinzu
-    }
-    // --- ENDE NEU ---
+    if (dataset) queryParams.push(`dataset=${encodeURIComponent(dataset)}`);
+    if (speed) queryParams.push(`speed=${speed}`);
+    if (count) queryParams.push(`count=${encodeURIComponent(count)}`);
+    if (queryParams.length > 0) url += `?${queryParams.join('&')}`;
 
-    if (queryParams.length > 0) {
-        url += `?${queryParams.join('&')}`;
-    }
-
-    // Timer, Status Logik und Daten-Check
     let startTime = null;
     let timerId = null;
-    let lastReceivedData = null;
+    let lastReceivedData = null; // Speichert das rohe JSON des letzten Schritts
+    let lastProcessedArrayState = null; // Speichert nur den Array-Teil des letzten verarbeiteten Schritts
     let isFinished = false;
 
-    // Variablen für Änderungs-Hervorhebung
-    let previousArr = [];
-    let lastChangedIndices = [];
-    const HIGHLIGHT_COUNT = 6;
+    // --- Separate Historien für Hervorhebungen ---
+    let recentlyChangedIndices = []; // Letzte 6 Änderungen (Rot)
+    let recentlyAccessedIndices = []; // Letzte 6 Zugriffe (Gelb)
+    const HIGHLIGHT_COUNT = 6; // Anzahl der zu merkenden Indizes
 
+    // --- Farbkonstanten ---
+    const COLOR_FINISHED = '#28a745'; // Grün
+    const COLOR_CHANGED = '#dc3545';  // Rot
+    const COLOR_ACCESSED = '#ffc107'; // Gelb
+    const COLOR_DEFAULT = 'steelblue'; // Blau
+
+    /**
+     * Aktualisiert die Anzeige der verstrichenen Zeit.
+     */
     function updateElapsedTime() {
         if (!startTime || isFinished) return;
         const now = Date.now();
@@ -60,54 +54,79 @@
         statusElement.textContent = `Status: Running... Elapsed: ${elapsedSeconds}s`;
     }
 
-    // SSE-Verbindung zum Backend
+    /**
+     * Fügt neue Indizes zu einer Highlight-Liste hinzu und hält sie auf maximaler Länge.
+     * @param {number[]} indexList Die Liste, die aktualisiert werden soll (z.B. recentlyChangedIndices).
+     * @param {number[]} newIndices Die neuen Indizes aus dem aktuellen Schritt.
+     */
+    function updateHighlightList(indexList, newIndices) {
+        newIndices.forEach(index => {
+            // Entferne den Index, falls er schon existiert, um ihn ans Ende zu schieben
+            const existingPos = indexList.indexOf(index);
+            if (existingPos > -1) {
+                indexList.splice(existingPos, 1);
+            }
+            // Füge den neuen Index am Ende hinzu
+            indexList.push(index);
+        });
+        // Kürze die Liste von vorne, falls sie zu lang wird
+        while (indexList.length > HIGHLIGHT_COUNT) {
+            indexList.shift();
+        }
+    }
+
+
     statusElement.textContent = 'Status: Connecting...';
     const evtSource = new EventSource(url);
 
-    // onopen Handler
+    /**
+     * Event-Handler beim Öffnen der SSE-Verbindung.
+     */
     evtSource.onopen = function() {
         startTime = Date.now();
         statusElement.textContent = 'Status: Running... Elapsed: 0.0s';
         timerId = setInterval(updateElapsedTime, 100);
         lastReceivedData = null;
+        lastProcessedArrayState = null;
         isFinished = false;
-
-        previousArr = [];
-        lastChangedIndices = [];
+        recentlyChangedIndices = []; // Zurücksetzen
+        recentlyAccessedIndices = []; // Zurücksetzen
     };
 
-    // onmessage Handler
+    /**
+     * Event-Handler für eingehende SSE-Nachrichten (SortSteps).
+     */
     evtSource.onmessage = function(e) {
-        if (isFinished) {
-            return;
-        }
-        if (e.data === lastReceivedData) {
-            return;
-        }
+        if (isFinished) return;
+
+        // Verhindere Verarbeitung identischer Rohdaten
+        if (e.data === lastReceivedData) return;
         lastReceivedData = e.data;
 
         try {
-            const arr = JSON.parse(e.data);
+            const stepData = JSON.parse(e.data);
+            const arr = stepData.currentArray;
+            // Lese die Indizes aus dem Schritt, Fallback auf leere Arrays
+            const currentAccessed = stepData.accessedIndices || [];
+            const currentChanged = stepData.changedIndices || [];
 
-            if (previousArr.length === 0) {
-                previousArr = [...arr];
+            if (!arr) {
+                console.warn("Received stepData, but 'currentArray' field was missing.", stepData);
+                return;
             }
 
-            const currentChanged = new Set();
-            for (let i = 0; i < arr.length; i++) {
-                if (arr[i] !== previousArr[i]) {
-                    lastChangedIndices.push(i);
-                    currentChanged.add(i);
-                }
-            }
+            // Optional: Verhindere Neuzeichnen, wenn sich nur Highlights ändern
+            // if (JSON.stringify(arr) === lastProcessedArrayState) return;
+            // lastProcessedArrayState = JSON.stringify(arr);
 
-            while (lastChangedIndices.length > HIGHLIGHT_COUNT) {
-                lastChangedIndices.shift();
-            }
 
-            previousArr = [...arr];
+            // --- Aktualisiere die Highlight-Listen ---
+            updateHighlightList(recentlyChangedIndices, currentChanged);
+            updateHighlightList(recentlyAccessedIndices, currentAccessed);
 
-            drawArray(arr, new Set(lastChangedIndices), false);
+
+            // --- Zeichne mit den aktualisierten Highlight-Listen ---
+            drawArray(arr, new Set(recentlyAccessedIndices), new Set(recentlyChangedIndices), false);
 
         } catch (error) {
             console.error("Failed to parse SSE data:", error, e.data);
@@ -118,7 +137,9 @@
         }
     };
 
-    // onerror Handler
+    /**
+     * Event-Handler für Fehler oder Schließen der SSE-Verbindung.
+     */
     evtSource.onerror = function(event) {
         isFinished = true;
         if (timerId) clearInterval(timerId);
@@ -131,9 +152,15 @@
                 statusElement.textContent = 'Status: Finished (connection closed)';
             }
 
+            // Zeichne den letzten bekannten Zustand grün
             if(lastReceivedData) {
                 try {
-                    drawArray(JSON.parse(lastReceivedData), new Set(), true);
+                    const stepData = JSON.parse(lastReceivedData);
+                    const arr = stepData.currentArray;
+                    if (arr) {
+                        // Keine Highlights im Endzustand
+                        drawArray(arr, new Set(), new Set(), true);
+                    }
                 } catch(e){
                     console.error("Error drawing final state:", e);
                 }
@@ -148,35 +175,60 @@
         }
     };
 
-
     /**
-     * @param {number[]} arr Das zu zeichnende Array
-     * @param {Set<number>} changedSet Ein Set von Indizes, die rot hervorgehoben werden sollen
-     * @param {boolean} isFinishedState Wenn true, wird alles grün gezeichnet
+     * Zeichnet das Array auf den Canvas mit Farb-Priorisierung (Grün > Rot > Gelb > Blau).
+     * @param {number[]} arr Das zu zeichnende Array.
+     * @param {Set<number>} accessedSet Set der Indizes aus den letzten Schritten, die angeschaut wurden (gelb).
+     * @param {Set<number>} changedSet Set der Indizes aus den letzten Schritten, die geändert wurden (rot).
+     * @param {boolean} isFinishedState Wenn true, wird alles grün gezeichnet.
      */
-    function drawArray(arr, changedSet, isFinishedState = false) {
+    function drawArray(arr, accessedSet, changedSet, isFinishedState = false) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Schutz gegen leeres oder ungültiges Array
+        if (!arr || arr.length === 0) {
+            return;
+        }
         const w = canvas.width / arr.length;
         const maxHeight = canvas.height;
 
         let maxValue = 0;
-        if (arr.length > 0) {
-            maxValue = arr.reduce((max, val) => Math.max(max, val), arr[0]);
+        try {
+            maxValue = Math.max(...arr.filter(val => typeof val === 'number' && isFinite(val))); // Finde Max nur von gültigen Zahlen
+        } catch (e) {
+            // Fallback, falls arr keine gültigen Zahlen enthält
+            maxValue = 1;
         }
-        if (maxValue === 0) maxValue = 1;
+        if (!isFinite(maxValue) || maxValue <= 0) maxValue = 1; // Fallback, falls Max 0, negativ oder ungültig ist
+
 
         for (let i = 0; i < arr.length; i++) {
-
+            // Farb-Priorität: Grün > Rot > Gelb > Blau
             if (isFinishedState) {
-                ctx.fillStyle = '#28a745'; // Grün für "Fertig"
-            } else if (changedSet.has(i)) {
-                ctx.fillStyle = '#dc3545'; // Rot (Hervorhebung)
-            } else {
-                ctx.fillStyle = 'steelblue'; // Standard Blau
+                ctx.fillStyle = COLOR_FINISHED;
+            } else if (changedSet.has(i)) { // Kürzlich geändert? -> Rot
+                ctx.fillStyle = COLOR_CHANGED;
+            } else if (accessedSet.has(i)) { // Kürzlich angeschaut? -> Gelb
+                ctx.fillStyle = COLOR_ACCESSED;
+            } else { // Standard
+                ctx.fillStyle = COLOR_DEFAULT;
             }
 
-            const barHeight = (arr[i] / maxValue) * maxHeight * 0.98;
-            ctx.fillRect(i * w, canvas.height - barHeight, w - 2, barHeight);
+            // Zeichne den Balken
+            const val = typeof arr[i] === 'number' && isFinite(arr[i]) ? arr[i] : 0; // Sicherstellen, dass val eine Zahl ist
+            const valueRatio = maxValue === 0 ? 0 : (val / maxValue);
+            const barHeightUncapped = valueRatio * maxHeight * 0.98;
+            const barHeight = Math.max(0, barHeightUncapped); // Höhe >= 0
+
+            const xPos = i * w;
+            const barWidth = Math.max(1, w - 2); // Mindestbreite 1px
+            const yPos = canvas.height - barHeight;
+
+            // Finale Prüfung vor dem Zeichnen
+            if (isFinite(xPos) && isFinite(yPos) && isFinite(barWidth) && isFinite(barHeight) && barWidth > 0 && barHeight >= 0) {
+                ctx.fillRect(xPos, yPos, barWidth, barHeight);
+            } else {
+                console.warn(`Skipping invalid rect draw: i=${i}, x=${xPos}, y=${yPos}, w=${barWidth}, h=${barHeight}, val=${val}, max=${maxValue}`);
+            }
         }
     }
 </script>
