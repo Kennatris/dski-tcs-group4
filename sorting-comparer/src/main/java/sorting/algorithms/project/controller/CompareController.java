@@ -41,26 +41,30 @@ public class CompareController {
 
     // 🔹 Datensätze abrufen
     @GetMapping("/datasets")
-    public Map<String, List<Integer>> getDatasets() {
+    public Map<String, List<Integer>> getDatasets(
+            // NEU: Request-Parameter für die Anzahl, Standard 1000
+            @RequestParam(required = false, defaultValue = "1000") int count) {
+
         Map<String, List<Integer>> sets = new LinkedHashMap<>();
 
         // Anzahl und Maximum als Variablen
-        final int ELEMENT_COUNT = 1000;
+        // NEU: Wert aus 'count' verwenden und auf Min/Max (100 / 1.000.000) beschränken
+        final int ELEMENT_COUNT = Math.max(100, Math.min(count, 1000000));
         final int MAX_VALUE = ELEMENT_COUNT - 1;
 
-        // Liste 1: Aufsteigend (0 -> 9999)
+        // Liste 1: Aufsteigend
         List<Integer> ascending = new ArrayList<>();
         for (int i = 0; i < ELEMENT_COUNT; i++) {
             ascending.add(i);
         }
 
-        // Liste 2: Absteigend (9999 -> 0)
+        // Liste 2: Absteigend
         List<Integer> descending = new ArrayList<>();
         for (int i = MAX_VALUE; i >= 0; i--) {
             descending.add(i);
         }
 
-        // Liste 3: Halbsortiert (erste Hälfte sortiert, zweite Hälfte zufällig)
+        // Liste 3: Halbsortiert
         List<Integer> halfSorted = new ArrayList<>(ascending);
         List<Integer> secondHalf = new ArrayList<>(halfSorted.subList(ELEMENT_COUNT / 2, ELEMENT_COUNT));
         Collections.shuffle(secondHalf);
@@ -68,7 +72,7 @@ public class CompareController {
             halfSorted.set(ELEMENT_COUNT / 2 + i, secondHalf.get(i));
         }
 
-        // Liste 4: Vollständig unsortiert (komplett zufällig)
+        // Liste 4: Vollständig unsortiert
         List<Integer> unsorted = new ArrayList<>(ascending);
         Collections.shuffle(unsorted);
 
@@ -83,6 +87,7 @@ public class CompareController {
      * SSE-Endpoint für Visualisierung.
      * - dataset: einer von "unsorted","halfSorted","sorted","reverse" (optional)
      * - input: optional JSON-Array (zB "%5B5%2C2%2C3%5D" = "[5,2,3]"), hat Vorrang vor dataset
+     * - (NEU) speed: optionale Pausenzeit in ms (default 1)
      *
      * Robustness:
      * - Verwende AtomicBoolean active, um nach onCompletion/onTimeout/onError keine weiteren sends zu versuchen.
@@ -92,7 +97,10 @@ public class CompareController {
     @GetMapping("/visualizer/{algorithm}")
     public SseEmitter visualize(@PathVariable String algorithm,
                                 @RequestParam(required = false) String dataset,
-                                @RequestParam(required = false) String input) {
+                                @RequestParam(required = false) String input,
+                                // NEU: Speed-Parameter, Standard 1ms
+                                @RequestParam(required = false, defaultValue = "1") int speed) {
+
         // kein Timeout (0) — setze falls du einen Timeout brauchst
         SseEmitter emitter = new SseEmitter(0L);
         SortingAlgorithm algo = sortingService.getAlgorithmByName(algorithm);
@@ -113,7 +121,10 @@ public class CompareController {
             }
         } else if (dataset != null && !dataset.isEmpty()) {
             // 2) else: dataset-Name verwenden (verwende die Controller-eigene Map)
-            Map<String, List<Integer>> sets = this.getDatasets();
+            // NEU: Ruft getDatasets mit 0 auf (Standard 1000), um die Map zu holen.
+            // (Die Datengröße wird hier *nicht* vom 'count' beeinflusst, sondern nur
+            // der Datentyp 'unsorted', 'sorted' etc. ausgewählt)
+            Map<String, List<Integer>> sets = this.getDatasets(1000); // Standardgröße für den Abruf
             List<Integer> ds = sets.get(dataset);
             if (ds != null) inputData = new ArrayList<>(ds);
         }
@@ -149,8 +160,17 @@ public class CompareController {
                         try {
                             // Versuche zu senden; wenn der Emitter bereits geschlossen ist, wird IllegalStateException geworfen
                             emitter.send(step);
-                            // kurze Pause für Visualisierung; falls InterruptedException -> beenden
-                            try { Thread.sleep(1); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+
+                            // NEU: Bedingte Pause basierend auf 'speed'
+                            // Wenn speed > 0, pausiere für 'speed' Millisekunden.
+                            if (speed > 0) {
+                                try {
+                                    Thread.sleep(speed); // Verwendet den Parameter
+                                } catch (InterruptedException ie) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            }
+
                         } catch (IllegalStateException ise) {
                             // Emitter bereits abgeschlossen / client disconnected -> markiere inaktiv und hör auf zu senden
                             active.set(false);

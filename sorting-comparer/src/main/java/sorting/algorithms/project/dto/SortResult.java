@@ -4,7 +4,7 @@ import java.util.List;
 
 public class SortResult {
     private String algorithm;
-    private long durationSteps;
+    private long steps;
     private long durationMillis;
     private List<Integer> unsorted;
     private List<Integer> sorted;
@@ -14,11 +14,11 @@ public class SortResult {
 
 
     // Konstruktor
-    public SortResult(String algorithm, long durationMillis, long durationSteps, List<Integer> unsorted, List<Integer> sorted,
+    public SortResult(String algorithm, long durationMillis, long steps, List<Integer> unsorted, List<Integer> sorted, // UM KORRIGIERT
                       String worstCase, String averageCase, String bestCase) {
         this.algorithm = algorithm;
         this.durationMillis = durationMillis;
-        this.durationSteps = durationSteps;
+        this.steps = steps; // UM KORRIGIERT
         this.unsorted = unsorted;
         this.sorted = sorted;
         this.worstCase = worstCase;
@@ -30,8 +30,10 @@ public class SortResult {
     public String getAlgorithm() { return algorithm; }
     public void setAlgorithm(String algorithm) { this.algorithm = algorithm; }
 
-    public long getDurationSteps() { return durationSteps; }
-    public void getDurationSteps(long durationSteps) { this.durationSteps = durationSteps; }
+    // GETTER KORRIGIERT
+    public long getSteps() { return steps; }
+    // SETTER KORRIGIERT (Name und Logik)
+    public void setSteps(long steps) { this.steps = steps; }
 
     public long getDurationMillis() { return durationMillis; }
     public void setDurationMillis(long durationMillis) { this.durationMillis = durationMillis; }

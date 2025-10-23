@@ -12,12 +12,32 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
-    // Algorithmus-Name aus Query-Parameter lesen
+    // Algorithmus-Name und NEUE Parameter aus Query-Parametern lesen
     const params = new URLSearchParams(window.location.search);
     const algorithm = params.get('algo');
+    const dataset = params.get('dataset'); // NEU
+    const speed = params.get('speed');     // NEU
 
-    // SSE-Verbindung zum Backend
-    const evtSource = new EventSource(`/api/compare/visualizer/${algorithm}`);
+    // NEU: URL für EventSource dynamisch bauen
+    let url = `/api/compare/visualizer/${algorithm}`;
+
+    // Füge Query-Parameter hinzu, falls sie existieren
+    const queryParams = [];
+    if (dataset) {
+        // Wichtig: 'dataset' muss URL-kodiert sein, da es Keys wie 'halfSorted' enthält
+        queryParams.push(`dataset=${encodeURIComponent(dataset)}`);
+    }
+    if (speed) {
+        queryParams.push(`speed=${speed}`);
+    }
+
+    // Hänge die Query-Parameter an die URL an
+    if (queryParams.length > 0) {
+        url += `?${queryParams.join('&')}`;
+    }
+
+    // SSE-Verbindung zum Backend (mit der NEUEN, dynamischen URL)
+    const evtSource = new EventSource(url);
 
     evtSource.onmessage = function(e) {
         const arr = JSON.parse(e.data);
@@ -30,7 +50,8 @@
 
         for (let i = 0; i < arr.length; i++) {
             ctx.fillStyle = 'steelblue';
-            ctx.fillRect(i * w, canvas.height - arr[i] * .25, w - 2, arr[i] * .25);
+            // (Die Höhe der Balken wurde in der 'target' Version leicht angepasst, ich übernehme das)
+            ctx.fillRect(i * w, canvas.height - arr[i] * .4, w - 2, arr[i] * .4);
         }
     }
 </script>
