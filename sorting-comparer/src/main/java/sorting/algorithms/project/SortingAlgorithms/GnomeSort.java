@@ -9,103 +9,160 @@ import java.util.Set;
 import java.util.function.Consumer;
 import sorting.algorithms.project.dto.SortStep;
 
+/**
+ * Implements the Gnome Sort algorithm (also known as Stupid Sort).
+ * It works by looking at the current and previous element. If they are in the correct order,
+ * it moves one step forward. If they are in the wrong order, it swaps them and moves one step backward.
+ * It continues until it reaches the end of the list.
+ */
 @Component
 public class GnomeSort implements SortingAlgorithm {
 
+    // Counter for steps (comparisons and swaps).
     private long steps;
+    // Stores the original dataset.
     private List<Integer> dataSet;
 
+    /**
+     * Returns the name of the sorting algorithm.
+     * @return The string "GnomeSort".
+     */
     @Override
     public String getName() {
         return "GnomeSort";
     }
 
+    /**
+     * Returns the best-case time complexity. O(n) occurs when the list is already sorted.
+     * @return The string "O(n)".
+     */
     @Override
     public String getBestCase() {
         return "O(n)";
     }
 
+    /**
+     * Returns the average-case time complexity. O(n²).
+     * @return The string "O(n²)".
+     */
     @Override
     public String getAverageCase() {
         return "O(n²)";
     }
 
+    /**
+     * Returns the worst-case time complexity. O(n²) occurs for reverse-sorted lists.
+     * @return The string "O(n²)".
+     */
     @Override
     public String getWorstCase() {
         return "O(n²)";
     }
 
+    /**
+     * Returns the total number of steps performed during the last sort.
+     * @return The number of steps.
+     */
     @Override
     public long getSteps() {
         return steps;
     }
 
+    /**
+     * Returns the original dataset provided to the algorithm.
+     * @return The original list of integers.
+     */
     @Override
     public List<Integer> getData() {
-        // Sicherstellen, dass dataSet nicht null ist
+        // Ensure a non-null list is returned.
         return dataSet != null ? dataSet : SortingAlgorithm.super.getData();
     }
 
+    /**
+     * Sorts a copy of the input list using Gnome Sort.
+     * @param input The list of integers to sort.
+     * @return A new list containing the sorted elements.
+     */
     @Override
     public List<Integer> sort(List<Integer> input) {
+        // Create a mutable copy.
         List<Integer> copy = new ArrayList<>(input);
+        // Store original data.
         dataSet = new ArrayList<>(copy);
+        // Reset step count.
         steps = 0;
+        // Perform sort with a no-op callback.
         gnomeSort(copy, (SortStep step) -> {});
+        // Return sorted copy.
         return copy;
     }
 
+    /**
+     * Sorts the input list in-place using Gnome Sort and reports each comparison and swap.
+     * @param input The list to be sorted (will be modified).
+     * @param stepCallback A consumer for reporting {@link SortStep} for visualization.
+     */
     @Override
     public void sortWithCallback(List<Integer> input, Consumer<SortStep> stepCallback) {
+        // Store original data.
         dataSet = new ArrayList<>(input);
+        // Reset step count.
         steps = 0;
-        // Sende initialen Zustand
+        // Send initial state.
         stepCallback.accept(new SortStep(new ArrayList<>(input), Collections.emptySet(), Collections.emptySet()));
+        // Perform the actual sorting.
         gnomeSort(input, stepCallback);
+        // Note: Final state is sent at the end of gnomeSort method.
     }
 
     /**
-     * Führt GnomeSort (Stupid Sort) "in-place" aus.
-     * Meldet jeden Vergleich und jeden Swap.
-     * @param arr Die zu sortierende Liste.
-     * @param stepCallback Der Callback für die Visualisierung.
+     * Performs the Gnome Sort logic in-place. Moves through the list, swapping elements
+     * that are out of order and stepping back, or stepping forward if elements are in order.
+     * Reports each comparison and swap operation.
+     * @param arr The list to sort in-place.
+     * @param stepCallback The consumer for reporting steps.
      */
     private void gnomeSort(List<Integer> arr, Consumer<SortStep> stepCallback) {
-        int index = 0; // Starte bei 0 für den ersten Vergleich bei index 1
+        // The current position in the list.
+        int index = 0;
         int n = arr.size();
 
+        // Continue until the index reaches the end of the list.
         while (index < n) {
             Set<Integer> accessed = new HashSet<>();
             Set<Integer> changed = new HashSet<>();
 
+            // If at the beginning of the list, move forward.
             if (index == 0) {
-                // Am Anfang gibt es nichts zu vergleichen, gehe einfach weiter
-                accessed.add(index); // Markiere aktuellen Index als "betrachtet"
+                accessed.add(index); // Mark current index as accessed/considered.
                 index++;
             } else {
-                accessed.add(index - 1); // Für get(index - 1)
-                accessed.add(index);     // Für get(index)
-                steps++; // Zähle Vergleich
+                // Access indices for comparison.
+                accessed.add(index - 1);
+                accessed.add(index);
+                steps++; // Count the comparison.
 
+                // Compare the current element with the previous one.
                 if (arr.get(index - 1) <= arr.get(index)) {
-                    // Elemente sind in Ordnung, gehe einen Schritt vorwärts
+                    // If they are in order, move forward.
                     index++;
                 } else {
-                    // Elemente tauschen
+                    // If they are out of order, swap them.
                     int temp = arr.get(index - 1);
                     arr.set(index - 1, arr.get(index));
                     arr.set(index, temp);
+                    // Mark swapped indices as changed.
                     changed.add(index - 1);
                     changed.add(index);
-                    steps++; // Zähle Swap (optional)
-                    // Gehe einen Schritt zurück
+                    steps++; // Optionally count the swap.
+                    // Move one step back to check the swapped element with its new predecessor.
                     index--;
                 }
             }
-            // Sende Zustand nach der Aktion (Vorrücken oder Tauschen/Zurückgehen)
+            // Report the state after the action (move forward or swap and move back).
             stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, changed));
         }
-        // Sende finalen Zustand (kann redundant sein)
+        // Send the final sorted state.
         stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet()));
     }
 }

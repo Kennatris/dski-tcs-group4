@@ -9,176 +9,231 @@ import java.util.Set;
 import java.util.function.Consumer;
 import sorting.algorithms.project.dto.SortStep;
 
+/**
+ * Implements the Cycle Sort algorithm.
+ * An in-place, unstable sorting algorithm that is theoretically optimal in terms of the total
+ * number of writes to the original array. It minimizes writes by identifying cycles of elements
+ * that need to be rotated to reach their correct positions.
+ */
 @Component
 public class CycleSort implements SortingAlgorithm {
 
+    // Counter for steps (comparisons and writes/swaps).
     private long steps;
+    // Stores the original dataset.
     private List<Integer> dataSet;
 
+    /**
+     * Returns the name of the sorting algorithm.
+     * @return The string "CycleSort".
+     */
     @Override
     public String getName() {
         return "CycleSort";
     }
 
+    /**
+     * Returns the best-case time complexity. O(n²).
+     * @return The string "O(n²)".
+     */
     @Override
     public String getBestCase() {
         return "O(n²)";
     }
 
+    /**
+     * Returns the average-case time complexity. O(n²).
+     * @return The string "O(n²)".
+     */
     @Override
     public String getAverageCase() {
         return "O(n²)";
     }
 
+    /**
+     * Returns the worst-case time complexity. O(n²).
+     * @return The string "O(n²)".
+     */
     @Override
     public String getWorstCase() {
         return "O(n²)";
     }
 
+    /**
+     * Returns the total number of steps performed during the last sort.
+     * @return The number of steps.
+     */
     @Override
     public long getSteps() {
         return steps;
     }
 
+    /**
+     * Returns the original dataset provided to the algorithm.
+     * @return The original list of integers.
+     */
     @Override
     public List<Integer> getData() {
-        // Sicherstellen, dass dataSet nicht null ist
+        // Ensure a non-null list is returned.
         return dataSet != null ? dataSet : SortingAlgorithm.super.getData();
     }
 
+    /**
+     * Sorts a copy of the input list using Cycle Sort.
+     * @param input The list of integers to sort.
+     * @return A new list containing the sorted elements.
+     */
     @Override
     public List<Integer> sort(List<Integer> input) {
+        // Create a mutable copy.
         List<Integer> copy = new ArrayList<>(input);
+        // Store original data.
         dataSet = new ArrayList<>(copy);
+        // Reset step count.
         steps = 0;
+        // Perform sort with a no-op callback.
         cycleSort(copy, (SortStep step) -> {});
+        // Return sorted copy.
         return copy;
     }
 
+    /**
+     * Sorts the input list in-place using Cycle Sort and reports each comparison and write.
+     * @param input The list to be sorted (will be modified).
+     * @param stepCallback A consumer for reporting {@link SortStep} for visualization.
+     */
     @Override
     public void sortWithCallback(List<Integer> input, Consumer<SortStep> stepCallback) {
+        // Store original data.
         dataSet = new ArrayList<>(input);
+        // Reset step count.
         steps = 0;
-        // Sende initialen Zustand
+        // Send initial state.
         stepCallback.accept(new SortStep(new ArrayList<>(input), Collections.emptySet(), Collections.emptySet()));
+        // Perform the actual sorting.
         cycleSort(input, stepCallback);
+        // Note: Final state is sent at the end of cycleSort method.
     }
 
     /**
-     * Führt CycleSort "in-place" aus und meldet jeden Vergleich und Swap.
-     * @param arr Die zu sortierende Liste.
-     * @param stepCallback Der Callback für die Visualisierung.
+     * Performs the Cycle Sort logic in-place. Iterates through the array, and for each element,
+     * finds its correct position and rotates the cycle involving that element.
+     * Reports each comparison and write operation.
+     * @param arr The list to sort in-place.
+     * @param stepCallback The consumer for reporting steps.
      */
     private void cycleSort(List<Integer> arr, Consumer<SortStep> stepCallback) {
         int n = arr.size();
+        // Handle lists with 0 or 1 element.
         if (n <= 1) {
-            stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet())); // Endzustand
+            stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet())); // Send final state
             return;
         }
 
 
-        // Durchlaufe Array, um Zyklen zu finden
+        // Iterate through the array to find cycles starting at each index.
         for (int cycle_start = 0; cycle_start <= n - 2; cycle_start++) {
-            Set<Integer> accessedInCycle = new HashSet<>(); // Sammelt alle Zugriffe innerhalb eines Zyklus
-            Set<Integer> changedInCycle = new HashSet<>();  // Sammelt alle Änderungen innerhalb eines Zyklus
+            // Sets to track accessed and changed indices within the current cycle processing.
+            Set<Integer> accessedInCycle = new HashSet<>();
+            Set<Integer> changedInCycle = new HashSet<>();
 
+            // The element to place correctly.
             int item = arr.get(cycle_start);
-            accessedInCycle.add(cycle_start);
+            accessedInCycle.add(cycle_start); // Mark the start index as accessed.
 
-            // Finde die Position, an der das Element stehen sollte
+            // Find the correct position 'pos' for 'item' by counting smaller elements to its right.
             int pos = cycle_start;
             for (int i = cycle_start + 1; i < n; i++) {
-                accessedInCycle.add(i); // Index i wird gelesen
-                steps++; // Zähle Vergleich
-                // Sende Zustand vor dem pos++
+                accessedInCycle.add(i); // Mark index 'i' as accessed for comparison.
+                steps++; // Count the comparison.
+                // Report state before potential increment of 'pos'.
                 stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessedInCycle), new HashSet<>(changedInCycle)));
                 if (arr.get(i) < item) {
-                    pos++;
+                    pos++; // Increment position if a smaller element is found.
                 }
             }
 
 
-            // Wenn das Element bereits an der richtigen Position ist, überspringe
+            // If the item is already in its correct position, skip to the next cycle start.
             if (pos == cycle_start) {
-                // Sende den Zustand, auch wenn nichts passiert
+                // Report the state even if nothing happened, showing the indices checked.
                 stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessedInCycle), new HashSet<>(changedInCycle)));
                 continue;
             }
 
-            // Überspringe Duplikate
+            // Skip duplicate elements. Find the first position after 'pos' that doesn't hold 'item'.
             while (pos < n && item == arr.get(pos)) {
-                accessedInCycle.add(pos); // Index pos wird gelesen
-                steps++; // Zähle Vergleich
-                // Sende Zustand während des Überspringens
+                accessedInCycle.add(pos); // Mark 'pos' as accessed during duplicate check.
+                steps++; // Count the comparison.
+                // Report state during duplicate skipping.
                 stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessedInCycle), new HashSet<>(changedInCycle)));
                 pos++;
             }
 
 
-            // Platziere das Element an die richtige Position
-            if (pos != cycle_start && pos < n) { // Sicherstellen, dass pos gültig ist
-                accessedInCycle.add(pos); // Index pos für get/set
-                int temp = item; // item wird temporär gehalten
-                item = arr.get(pos); // item wird überschrieben (Lesezugriff auf pos)
-                arr.set(pos, temp); // Schreibzugriff auf pos
-                changedInCycle.add(pos);
-                steps++; // Zähle den Swap als Schritt
-                // Sende Zustand nach dem Platzieren
+            // Place the 'item' at its correct position 'pos'.
+            if (pos != cycle_start && pos < n) { // Ensure 'pos' is valid and different from start.
+                accessedInCycle.add(pos); // Mark 'pos' for get/set access.
+                int temp = item; // Store item temporarily.
+                item = arr.get(pos); // The element currently at 'pos' becomes the new 'item' to place.
+                arr.set(pos, temp); // Place the original 'item' at 'pos'.
+                changedInCycle.add(pos); // Mark 'pos' as changed.
+                steps++; // Count the write/swap operation.
+                // Report state after placing the item.
                 stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessedInCycle), new HashSet<>(changedInCycle)));
             } else if (pos >=n ) {
-                // Element gehört ans Ende, was hier nicht direkt behandelt wird
-                // oder alle restlichen waren Duplikate. Sende Zustand und continue.
+                // Handle cases where position is out of bounds (shouldn't happen if duplicates handled correctly)
+                // or all remaining elements were duplicates. Report state and continue.
                 stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessedInCycle), new HashSet<>(changedInCycle)));
-                continue; // Zum nächsten cycle_start gehen
+                continue; // Move to the next cycle_start.
             }
 
 
-            // Rotiere den Rest des Zyklus
+            // Rotate the rest of the cycle until the element originally at cycle_start is placed.
             while (pos != cycle_start) {
-                accessedInCycle.clear(); // Für die innere Schleife neu starten
+                // Reset accessed/changed sets for finding the position of the *new* item.
+                accessedInCycle.clear();
                 changedInCycle.clear();
 
-                pos = cycle_start; // Setze pos zurück, um die *neue* korrekte Position für 'item' zu finden
-
-                // Finde die korrekte Position für das *neue* 'item'
+                // Find the correct position for the *new* 'item' (which was displaced).
+                pos = cycle_start; // Start searching from cycle_start again.
                 for (int i = cycle_start + 1; i < n; i++) {
-                    accessedInCycle.add(i); // Index i wird gelesen
-                    steps++; // Zähle Vergleich
-                    // Sende Zustand vor pos++
+                    accessedInCycle.add(i); // Mark index 'i' as accessed.
+                    steps++; // Count comparison.
+                    // Report state before potential increment of 'pos'.
                     stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessedInCycle), new HashSet<>(changedInCycle)));
                     if (arr.get(i) < item) {
                         pos++;
                     }
                 }
 
-                // Überspringe Duplikate für das neue 'item'
+                // Skip duplicates for the new 'item'.
                 while (pos < n && item == arr.get(pos)) {
-                    accessedInCycle.add(pos); // Index pos wird gelesen
-                    steps++; // Zähle Vergleich
-                    // Sende Zustand während des Überspringens
+                    accessedInCycle.add(pos); // Mark 'pos' as accessed.
+                    steps++; // Count comparison.
+                    // Report state during duplicate skipping.
                     stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessedInCycle), new HashSet<>(changedInCycle)));
                     pos++;
                 }
 
-                // Platziere das Element, wenn es nicht das gleiche ist und pos gültig ist
-                if (pos < n && item != arr.get(pos)) {
-                    accessedInCycle.add(pos); // Index pos für get/set
+                // Place the new 'item' at its correct position 'pos', if valid and different.
+                if (pos < n && !arr.get(pos).equals(item)) { // Use equals for Integer comparison
+                    accessedInCycle.add(pos); // Mark 'pos' for get/set access.
                     int temp = item;
-                    item = arr.get(pos);
+                    item = arr.get(pos); // The next element in the cycle becomes the new 'item'.
                     arr.set(pos, temp);
-                    changedInCycle.add(pos);
-                    steps++; // Zähle Swap
-                    // Sende Zustand nach dem Platzieren
+                    changedInCycle.add(pos); // Mark 'pos' as changed.
+                    steps++; // Count write/swap.
+                    // Report state after placing the item.
                     stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessedInCycle), new HashSet<>(changedInCycle)));
-                } else if (pos >= n || item == arr.get(pos)) {
-                    // Entweder Position ungültig oder Duplikat erreicht Start -> Zyklus Ende?
-                    // Sende Zustand und brich innere Schleife ab
+                } else if (pos >= n || arr.get(pos).equals(item)) { // Position invalid or duplicate reached start?
+                    // Report state and break the inner while loop (cycle should be complete or error).
                     stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessedInCycle), new HashSet<>(changedInCycle)));
-                    break; // Verlasse die innere while-Schleife
+                    break;
                 }
             }
         }
-        // Sende finalen Zustand
+        // Send the final sorted state.
         stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet()));
     }
 }

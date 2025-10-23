@@ -3,28 +3,29 @@ package sorting.algorithms.project.dto;
 import java.util.List;
 
 /**
- * Speichert das Ergebnis eines einzelnen Sortiervorgangs.
+ * Data Transfer Object (DTO) storing the result of a single sorting algorithm execution.
+ * Includes performance metrics (time, steps) and excerpts of the data.
  */
 public class SortResult {
-    private String algorithm;
-    private long steps;
-    private long durationMillis;
-    private List<Integer> unsorted;
-    private List<Integer> sorted;
-    private String worstCase;
-    private String averageCase;
-    private String bestCase;
+    private String algorithm;     // Name of the algorithm used
+    private long steps;           // Number of steps (e.g., comparisons, swaps) performed
+    private long durationMillis;  // Execution time in milliseconds
+    private List<Integer> unsorted; // Excerpt of the original unsorted list
+    private List<Integer> sorted;   // Excerpt of the resulting sorted list
+    private String worstCase;     // Worst-case time complexity
+    private String averageCase;   // Average-case time complexity
+    private String bestCase;      // Best-case time complexity
 
     /**
-     * Erstellt ein neues Sortierergebnis.
-     * @param algorithm Der Name des Algorithmus.
-     * @param durationMillis Die Dauer der Sortierung in Millisekunden.
-     * @param steps Die Anzahl der durchgeführten Schritte/Operationen.
-     * @param unsorted Ein Auszug der unsortierten Liste.
-     * @param sorted Ein Auszug der sortierten Liste.
-     * @param worstCase Die Komplexität im Worst Case.
-     * @param averageCase Die Komplexität im Average Case.
-     * @param bestCase Die Komplexität im Best Case.
+     * Constructs a new SortResult instance.
+     * @param algorithm The name of the algorithm.
+     * @param durationMillis The duration of the sort operation in milliseconds.
+     * @param steps The number of steps (operations) performed by the algorithm.
+     * @param unsorted An excerpt (e.g., first few elements) of the original unsorted list.
+     * @param sorted An excerpt (e.g., first few elements) of the final sorted list.
+     * @param worstCase The worst-case time complexity string.
+     * @param averageCase The average-case time complexity string.
+     * @param bestCase The best-case time complexity string.
      */
     public SortResult(String algorithm, long durationMillis, long steps, List<Integer> unsorted, List<Integer> sorted,
                       String worstCase, String averageCase, String bestCase) {
@@ -38,75 +39,29 @@ public class SortResult {
         this.bestCase = bestCase;
     }
 
-    /**
-     * @return Der Name des Algorithmus.
-     */
+    // --- Standard Getters and Setters ---
+
     public String getAlgorithm() { return algorithm; }
-    /**
-     * @param algorithm Der Name des Algorithmus.
-     */
     public void setAlgorithm(String algorithm) { this.algorithm = algorithm; }
 
-    /**
-     * @return Die Anzahl der Schritte.
-     */
     public long getSteps() { return steps; }
-    /**
-     * @param steps Die Anzahl der Schritte.
-     */
     public void setSteps(long steps) { this.steps = steps; }
 
-    /**
-     * @return Die Dauer in Millisekunden.
-     */
     public long getDurationMillis() { return durationMillis; }
-    /**
-     * @param durationMillis Die Dauer in Millisekunden.
-     */
     public void setDurationMillis(long durationMillis) { this.durationMillis = durationMillis; }
 
-    /**
-     * @return Ein Auszug der unsortierten Liste.
-     */
     public List<Integer> getUnsorted() { return unsorted; }
-    /**
-     * @param unsorted Ein Auszug der unsortierten Liste.
-     */
     public void setUnsorted(List<Integer> unsorted) { this.unsorted = unsorted; }
 
-    /**
-     * @return Ein Auszug der sortierten Liste.
-     */
     public List<Integer> getSorted() { return sorted; }
-    /**
-     * @param sorted Ein Auszug der sortierten Liste.
-     */
     public void setSorted(List<Integer> sorted) { this.sorted = sorted; }
 
-    /**
-     * @return Die Komplexität im Worst Case.
-     */
     public String getWorstCase() { return worstCase; }
-    /**
-     * @param worstCase Die Komplexität im Worst Case.
-     */
     public void setWorstCase(String worstCase) { this.worstCase = worstCase; }
 
-    /**
-     * @return Die Komplexität im Average Case.
-     */
     public String getAverageCase() { return averageCase; }
-    /**
-     * @param averageCase Die Komplexität im Average Case.
-     */
     public void setAverageCase(String averageCase) { this.averageCase = averageCase; }
 
-    /**
-     * @return Die Komplexität im Best Case.
-     */
     public String getBestCase() { return bestCase; }
-    /**
-     * @param bestCase Die Komplexität im Best Case.
-     */
     public void setBestCase(String bestCase) { this.bestCase = bestCase; }
 }

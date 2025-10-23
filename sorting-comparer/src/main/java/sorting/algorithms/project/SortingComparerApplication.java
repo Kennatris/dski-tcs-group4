@@ -4,16 +4,18 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Haupt-Einstiegspunkt für die Spring Boot-Anwendung.
+ * The main entry point for the Spring Boot application.
+ * This class configures and launches the application context.
  */
-@SpringBootApplication
+@SpringBootApplication // Enables auto-configuration, component scanning, etc.
 public class SortingComparerApplication {
 
 	/**
-	 * Startet die Spring Boot-Anwendung.
-	 * @param args Kommandozeilenargumente.
+	 * The main method that starts the Spring Boot application.
+	 * @param args Command-line arguments passed to the application.
 	 */
 	public static void main(String[] args) {
+		// Launches the Spring application context.
 		SpringApplication.run(SortingComparerApplication.class, args);
 	}
 

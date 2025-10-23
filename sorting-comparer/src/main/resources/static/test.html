@@ -1,167 +1,71 @@
 <!doctype html>
-<html lang="de">
-<head>
+<html lang="en"> <head>
     <meta charset="utf-8" />
-    <title>Sortieralgorithmen vergleichen</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Compare Sorting Algorithms</title> <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="compare.css" />
-    <style>
-        /* Zusätzliche Stile für die Suchergebnislisten */
-        .search-results { /* Klasse statt ID für Wiederverwendbarkeit */
-            border: 1px solid #ccc;
-            max-height: 200px;
-            overflow-y: auto;
-            position: absolute; /* Positioniert die Liste unter dem Suchfeld */
-            background-color: white;
-            z-index: 1000; /* Stellt sicher, dass die Liste über anderen Elementen liegt */
-            width: calc(100% - 1.2rem); /* Passt Breite an (ggf. anpassen) */
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            margin-top: 2px; /* Kleiner Abstand zum Suchfeld */
-        }
-        .search-result-item {
-            padding: 8px 12px;
-            cursor: pointer; /* Gesamtes Element klickbar machen */
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .search-result-item:hover {
-            background-color: #f0f0f0;
-        }
-        .search-result-item span {
-            flex-grow: 1;
-            margin-right: 10px;
-        }
-        /* Container für Suche und Ergebnisliste */
-        .search-container {
-            position: relative; /* Wichtig für absolute Positionierung der Ergebnisliste */
-            margin-bottom: 1rem; /* Abstand nach unten */
-        }
-        /* Progress Bar Animation */
-        @keyframes progress-bar-stripes {
-            from { background-position: 1rem 0; }
-            to { background-position: 0 0; }
-        }
-
-        #progressBar {
-            width: 60%;
-            margin-top: 1rem;
-            height: 12px;
-            margin-left: auto;
-            margin-right: auto;
-            appearance: none;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            overflow: hidden;
-            /* Standardmäßig ausgeblendet, wird per JS gesteuert */
-            display: none;
-        }
-
-        #progressBar::-webkit-progress-bar {
-            background-color: #f5f5f5;
-            border-radius: 5px;
-        }
-
-        #progressBar::-webkit-progress-value {
-            background-color: #007bff;
-            background-image: linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%,
-            transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%,
-            transparent 75%, transparent);
-            background-size: 1rem 1rem;
-            animation: progress-bar-stripes 1s linear infinite;
-            transition: width 0.1s ease; /* Glättet Wertänderungen */
-        }
-
-        #progressBar::-moz-progress-bar {
-            background-color: #007bff;
-            background-image: linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%,
-            transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%,
-            transparent 75%, transparent);
-            background-size: 1rem 1rem;
-            animation: progress-bar-stripes 1s linear infinite;
-            transition: width 0.1s ease;
-        }
-        /* Styles, um Tabelle und Iframes initial auszublenden */
-        #resultTable, #frameA, #frameB {
-            display: none; /* Initial komplett ausgeblendet */
-        }
-
-    </style>
 </head>
 <body>
-<h1>Vergleich von zwei Sortieralgorithmen</h1>
-
-<div class="center">
-    <label for="datasetSelect">Datensatz-Auswahl</label>
-    <select id="datasetSelect"></select>
+<h1>Compare Two Sorting Algorithms</h1> <div class="center">
+    <label for="datasetSelect">Select Dataset</label> <select id="datasetSelect"></select>
 
     <div class="options-grid">
         <div>
-            <label for="elementCount">Anzahl Elemente (für Datensätze)</label>
-            <input type="number" id="elementCount" value="1000" min="5" max="1000000">
+            <label for="elementCount">Number of Elements (for datasets)</label> <input type="number" id="elementCount" value="1000" min="5" max="1000000">
         </div>
         <div>
-            <label for="vizSpeed">Visualisierungs-Pause (ms)</label>
-            <input type="number" id="vizSpeed" value="0" min="0" max="1000">
+            <label for="vizSpeed">Visualization Pause (ms)</label> <input type="number" id="vizSpeed" value="0" min="0" max="1000">
         </div>
     </div>
 </div>
 
 <div class="grid">
     <div>
-        <label for="searchInputA">Algorithmus A</label>
-        <div class="search-container">
-            <input type="text" id="searchInputA" placeholder="Suchen..." autocomplete="off">
-            <div id="searchResultsA" class="search-results" style="display: none;"></div>
-        </div>
-        <iframe id="frameA" title="Algorithmus A Visualisierung"></iframe>
+        <label for="searchInputA">Algorithm A</label> <div class="search-container">
+        <input type="text" id="searchInputA" placeholder="Search..." autocomplete="off">
+        <div id="searchResultsA" class="search-results" style="display: none;"></div>
     </div>
+        <iframe id="frameA" title="Algorithm A Visualization"></iframe> </div>
     <div>
-        <label for="searchInputB">Algorithmus B</label>
-        <div class="search-container">
-            <input type="text" id="searchInputB" placeholder="Suchen..." autocomplete="off">
-            <div id="searchResultsB" class="search-results" style="display: none;"></div>
-        </div>
-        <iframe id="frameB" title="Algorithmus B Visualisierung"></iframe>
+        <label for="searchInputB">Algorithm B</label> <div class="search-container">
+        <input type="text" id="searchInputB" placeholder="Search..." autocomplete="off">
+        <div id="searchResultsB" class="search-results" style="display: none;"></div>
     </div>
+        <iframe id="frameB" title="Algorithm B Visualization"></iframe> </div>
 </div>
 
 
 <div class="center">
-    <button id="compareBtn">Vergleichen</button>
-    <p id="status" class="loading" style="display:none;">Sortiere Daten...</p>
-    <progress id="progressBar" value="0" max="100"></progress>
+    <button id="compareBtn">Compare</button> <p id="status" class="loading" style="display:none;">Sorting data...</p> <progress id="progressBar" value="0" max="100"></progress>
 </div>
 
 <table id="resultTable">
     <thead>
     <tr>
-        <th>Algorithmus</th>
-        <th>Laufzeit (ms)</th>
+        <th>Algorithm</th>
+        <th>Runtime (ms)</th>
         <th>Steps</th>
-        <th>Unsortiertes Array</th>
-        <th>Sortiertes Ergebnis</th>
+        <th>Unsorted Array (Excerpt)</th>
+        <th>Sorted Result (Excerpt)</th>
         <th>Worst Case</th>
         <th>Average Case</th>
         <th>Best Case</th>
     </tr>
     </thead>
-    <tbody></tbody>
-</table>
+    <tbody></tbody> </table>
 
 <script>
-    // Globale Variablen (wie zuvor)
-    let datasets = {};
-    let algorithmDetails = {};
-    let allAlgorithmNames = [];
-    let selectedAlgorithmA = null;
-    let selectedAlgorithmB = null;
-    let isComparing = false;
-    let currentCompareController = null;
-    let progressAnimationId = null;
-    let progressBarLoopCount = 0; // Zähler für die Loops der Progress Bar
+    // --- Global Variables ---
+    let datasets = {}; // Stores fetched standard datasets {name: [data]}
+    let algorithmDetails = {}; // Stores fetched algorithm metadata {name: {details}}
+    let allAlgorithmNames = []; // Stores a sorted list of all available algorithm names
+    let selectedAlgorithmA = null; // Currently selected algorithm for slot A
+    let selectedAlgorithmB = null; // Currently selected algorithm for slot B
+    let isComparing = false; // Flag to indicate if a comparison is currently running
+    let currentCompareController = null; // AbortController for the current fetch request
+    let progressAnimationId = null; // ID for canceling the progress bar animation frame
+    let progressBarLoopCount = 0; // Counter for progress bar animation loops (to slow down)
 
-    // UI-Referenzen (wie zuvor)
+    // --- UI Element References ---
     const searchInputA = document.getElementById('searchInputA');
     const searchResultsA = document.getElementById('searchResultsA');
     const searchInputB = document.getElementById('searchInputB');
@@ -177,41 +81,192 @@
     const speedInput = document.getElementById('vizSpeed');
     const datasetSelect = document.getElementById('datasetSelect');
 
-    // --- Funktionen loadAlgorithms, updateSearchResults, selectAlgorithm, loadDatasets (wie zuvor) ---
-    async function loadAlgorithms() { /* ... unverändert ... */
-        try { const res = await fetch('/api/compare/algorithms'); if (!res.ok) throw new Error(`${res.status}`); const algos = await res.json(); algorithmDetails = {}; allAlgorithmNames = algos.map(algo => algo.name).sort(); algos.forEach(algo => algorithmDetails[algo.name] = algo); if (allAlgorithmNames.length >= 1) selectedAlgorithmA = allAlgorithmNames[0]; if (allAlgorithmNames.length >= 2) selectedAlgorithmB = allAlgorithmNames[1]; else if (allAlgorithmNames.length === 1) selectedAlgorithmB = allAlgorithmNames[0]; searchInputA.value = ''; searchInputB.value = ''; } catch (err) { console.error('Fehler Algorithmen:', err); allAlgorithmNames = []; }
-    }
-    function updateSearchResults(slot) { /* ... unverändert ... */
-        const inputElement = (slot === 'A') ? searchInputA : searchInputB; const resultsContainer = (slot === 'A') ? searchResultsA : searchResultsB; const searchTerm = inputElement.value; resultsContainer.innerHTML = ''; let filteredList = []; const searchTermLower = searchTerm.trim().toLowerCase(); if (searchTermLower === '') { filteredList = [...allAlgorithmNames]; } else { const startsWithList = allAlgorithmNames.filter(name => name.toLowerCase().startsWith(searchTermLower)); const containsList = allAlgorithmNames.filter(name => !name.toLowerCase().startsWith(searchTermLower) && name.toLowerCase().includes(searchTermLower)); filteredList = startsWithList.concat(containsList); } if (filteredList.length > 0) { filteredList.forEach(algoName => { const itemDiv = document.createElement('div'); itemDiv.classList.add('search-result-item'); itemDiv.onclick = () => selectAlgorithm(algoName, slot); const nameSpan = document.createElement('span'); if (searchTermLower !== '') { const escapedSearchTerm = searchTermLower.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'); const regex = new RegExp(`(${escapedSearchTerm})`, 'gi'); nameSpan.innerHTML = algoName.replace(regex, '<b>$1</b>'); } else { nameSpan.textContent = algoName; } itemDiv.appendChild(nameSpan); resultsContainer.appendChild(itemDiv); }); resultsContainer.style.display = 'block'; } else { const noResultDiv = document.createElement('div'); noResultDiv.classList.add('search-result-item'); noResultDiv.style.fontStyle = 'italic'; noResultDiv.textContent = "Keine Übereinstimmung"; resultsContainer.appendChild(noResultDiv); resultsContainer.style.display = 'block'; }
-    }
-    function selectAlgorithm(algoName, slot) { /* ... unverändert ... */
-        if (slot === 'A') { selectedAlgorithmA = algoName; searchInputA.value = algoName; searchResultsA.style.display = 'none'; } else if (slot === 'B') { selectedAlgorithmB = algoName; searchInputB.value = algoName; searchResultsB.style.display = 'none'; }
-    }
-    async function loadDatasets() { /* ... unverändert ... */
-        let elementCount = parseInt(elementCountInput.value, 10); const minCount = 5, maxCount = 1000000; if (isNaN(elementCount) || elementCount < minCount) elementCount = minCount; else if (elementCount > maxCount) elementCount = maxCount; elementCountInput.value = elementCount; try { const res = await fetch(`/api/compare/datasets?count=${elementCount}`); if (!res.ok) throw new Error(`HTTP ${res.status}`); const data = await res.json(); datasets = data || {}; const previousValue = datasetSelect.value; datasetSelect.innerHTML = ''; let foundPrevious = false; for (const key of Object.keys(datasets)) { const opt = document.createElement('option'); opt.value = key; opt.textContent = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()); datasetSelect.appendChild(opt); if (key === previousValue) { opt.selected = true; foundPrevious = true; } } if (!foundPrevious && datasetSelect.options.length > 0) datasetSelect.selectedIndex = 0; else if (datasetSelect.options.length === 0) datasetSelect.innerHTML = '<option value="">Keine Datensätze</option>'; } catch (err) { console.error("Fehler Datensätze:", err); datasets = {}; datasetSelect.innerHTML = '<option value="">Fehler</option>'; }
+    // --- Core Functions ---
+
+    /**
+     * Fetches the list of available algorithms from the backend.
+     */
+    async function loadAlgorithms() {
+        try {
+            const response = await fetch('/api/compare/algorithms');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const algorithms = await response.json();
+
+            algorithmDetails = {}; // Reset details map
+            // Extract names, sort them, and populate the details map
+            allAlgorithmNames = algorithms.map(algo => algo.name).sort();
+            algorithms.forEach(algo => algorithmDetails[algo.name] = algo);
+
+            // Set default selections if available
+            if (allAlgorithmNames.length >= 1) selectedAlgorithmA = allAlgorithmNames[0];
+            if (allAlgorithmNames.length >= 2) selectedAlgorithmB = allAlgorithmNames[1];
+            else if (allAlgorithmNames.length === 1) selectedAlgorithmB = allAlgorithmNames[0]; // Allow comparing same algo
+
+            // Clear input fields initially (will be filled if defaults exist later)
+            searchInputA.value = selectedAlgorithmA || '';
+            searchInputB.value = selectedAlgorithmB || '';
+
+        } catch (error) {
+            console.error('Error loading algorithms:', error);
+            allAlgorithmNames = []; // Reset on error
+            // Optionally, display an error message to the user here
+        }
     }
 
     /**
-     * Setzt die Benutzeroberfläche zurück (nach Anzeige oder Abbruch).
+     * Updates the search results dropdown for a given slot (A or B).
+     * Filters algorithms based on the input field value.
+     * @param {string} slot - 'A' or 'B'.
+     */
+    function updateSearchResults(slot) {
+        const inputElement = (slot === 'A') ? searchInputA : searchInputB;
+        const resultsContainer = (slot === 'A') ? searchResultsA : searchResultsB;
+        const searchTerm = inputElement.value;
+
+        resultsContainer.innerHTML = ''; // Clear previous results
+        let filteredList = [];
+        const searchTermLower = searchTerm.trim().toLowerCase();
+
+        if (searchTermLower === '') {
+            // Show all if search term is empty
+            filteredList = [...allAlgorithmNames];
+        } else {
+            // Prioritize algorithms starting with the search term
+            const startsWithList = allAlgorithmNames.filter(name =>
+                name.toLowerCase().startsWith(searchTermLower));
+            // Then include algorithms containing the search term
+            const containsList = allAlgorithmNames.filter(name =>
+                !name.toLowerCase().startsWith(searchTermLower) && name.toLowerCase().includes(searchTermLower));
+            filteredList = startsWithList.concat(containsList);
+        }
+
+        if (filteredList.length > 0) {
+            filteredList.forEach(algoName => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('search-result-item');
+                // Set click handler to select the algorithm
+                itemDiv.onclick = () => selectAlgorithm(algoName, slot);
+
+                const nameSpan = document.createElement('span');
+                // Highlight matching part if searching
+                if (searchTermLower !== '') {
+                    // Escape special regex characters in the search term
+                    const escapedSearchTerm = searchTermLower.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                    const regex = new RegExp(`(${escapedSearchTerm})`, 'gi'); // Global, case-insensitive
+                    nameSpan.innerHTML = algoName.replace(regex, '<b>$1</b>'); // Wrap match in bold
+                } else {
+                    nameSpan.textContent = algoName;
+                }
+
+                itemDiv.appendChild(nameSpan);
+                resultsContainer.appendChild(itemDiv);
+            });
+            resultsContainer.style.display = 'block'; // Show results
+        } else {
+            // Display "No match found" message
+            const noResultDiv = document.createElement('div');
+            noResultDiv.classList.add('search-result-item');
+            noResultDiv.style.fontStyle = 'italic';
+            noResultDiv.textContent = "No match found";
+            resultsContainer.appendChild(noResultDiv);
+            resultsContainer.style.display = 'block'; // Show message
+        }
+    }
+
+    /**
+     * Handles the selection of an algorithm from the search results.
+     * Updates the input field and hides the results dropdown.
+     * @param {string} algoName - The selected algorithm name.
+     * @param {string} slot - 'A' or 'B'.
+     */
+    function selectAlgorithm(algoName, slot) {
+        if (slot === 'A') {
+            selectedAlgorithmA = algoName;
+            searchInputA.value = algoName;
+            searchResultsA.style.display = 'none'; // Hide results
+        } else if (slot === 'B') {
+            selectedAlgorithmB = algoName;
+            searchInputB.value = algoName;
+            searchResultsB.style.display = 'none'; // Hide results
+        }
+        // Optionally trigger validation or update other UI elements
+    }
+
+    /**
+     * Fetches standard datasets from the backend based on the element count.
+     * Updates the dataset selection dropdown.
+     */
+    async function loadDatasets() {
+        let elementCount = parseInt(elementCountInput.value, 10);
+        const minCount = 5, maxCount = 1000000;
+
+        // Validate and clamp element count
+        if (isNaN(elementCount) || elementCount < minCount) elementCount = minCount;
+        else if (elementCount > maxCount) elementCount = maxCount;
+        elementCountInput.value = elementCount; // Update input field if clamped
+
+        try {
+            const response = await fetch(`/api/compare/datasets?count=${elementCount}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            datasets = data || {}; // Store fetched datasets
+
+            // Repopulate the dataset dropdown
+            const previousValue = datasetSelect.value; // Remember selection if possible
+            datasetSelect.innerHTML = ''; // Clear existing options
+            let foundPrevious = false;
+
+            for (const key of Object.keys(datasets)) {
+                const opt = document.createElement('option');
+                opt.value = key;
+                // Format name (e.g., "halfSorted" -> "Half Sorted")
+                opt.textContent = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                datasetSelect.appendChild(opt);
+                // Reselect previous value if it still exists
+                if (key === previousValue) {
+                    opt.selected = true;
+                    foundPrevious = true;
+                }
+            }
+
+            // If previous selection not found, select the first option
+            if (!foundPrevious && datasetSelect.options.length > 0) {
+                datasetSelect.selectedIndex = 0;
+            } else if (datasetSelect.options.length === 0) {
+                // Handle case where no datasets are returned
+                datasetSelect.innerHTML = '<option value="">No datasets available</option>';
+            }
+
+        } catch (error) {
+            console.error("Error loading datasets:", error);
+            datasets = {}; // Reset datasets on error
+            datasetSelect.innerHTML = '<option value="">Error loading</option>';
+            // Optionally, display an error message to the user
+        }
+    }
+
+    /**
+     * Resets the UI elements to their initial state after a comparison or cancellation.
      */
     function resetUI() {
-        isComparing = false;
-        compareBtn.textContent = 'Vergleichen';
-        compareBtn.disabled = false;
-        compareBtn.classList.remove('cancel-btn');
+        isComparing = false; // Reset comparison flag
+        compareBtn.textContent = 'Compare'; // Reset button text
+        compareBtn.disabled = false; // Enable button
+        compareBtn.classList.remove('cancel-btn'); // Remove cancel styling
 
-        status.style.display = 'none';
-        progressBar.style.display = 'none'; // ProgressBar sicher ausblenden
-        progressBar.value = 0;
+        status.style.display = 'none'; // Hide status message
+        progressBar.style.display = 'none'; // Hide progress bar
+        progressBar.value = 0; // Reset progress bar value
 
+        // Stop progress bar animation if running
         if (progressAnimationId) {
             cancelAnimationFrame(progressAnimationId);
             progressAnimationId = null;
         }
-        progressBarLoopCount = 0; // Wichtig: Loop-Zähler zurücksetzen
-        currentCompareController = null;
+        progressBarLoopCount = 0; // Reset loop counter
+        currentCompareController = null; // Clear abort controller reference
 
-        // Eingabefelder aktivieren
+        // Re-enable input fields
         searchInputA.disabled = false;
         searchInputB.disabled = false;
         datasetSelect.disabled = false;
@@ -220,212 +275,392 @@
     }
 
     /**
-     * Bricht einen laufenden Vergleich ab und setzt UI zurück.
+     * Cancels the currently running comparison fetch request.
      */
     function cancelCompare() {
+        // Abort the fetch request if controller exists
         if (currentCompareController) {
             currentCompareController.abort();
-            console.log("Vergleichs-Anfrage abgebrochen.");
+            console.log("Comparison request aborted.");
         }
-        isComparing = false; // Zustand sofort ändern
-        if (progressAnimationId) { // Animation sofort stoppen
+        isComparing = false; // Update flag immediately
+
+        // Stop progress animation immediately
+        if (progressAnimationId) {
             cancelAnimationFrame(progressAnimationId);
             progressAnimationId = null;
         }
-        compareBtn.textContent = 'Wird abgebrochen...';
+
+        // Update button state to indicate cancellation
+        compareBtn.textContent = 'Cancelling...';
         compareBtn.disabled = true;
 
+        // Use setTimeout to allow UI update before resetting fully
         setTimeout(() => {
-            resetUI(); // Reset aufrufen (blendet auch Progressbar aus etc.)
-            // Tabelle/Iframes sicher ausblenden
+            resetUI(); // Reset UI elements (hides progress bar, enables inputs)
+
+            // Explicitly hide results and clear iframes
             table.style.display = 'none';
             frameA.style.display = 'none';
             frameB.style.display = 'none';
-            frameA.src = 'about:blank'; // Leeren
-            frameB.src = 'about:blank'; // Leeren
-            status.textContent = "Vergleich abgebrochen.";
+            frameA.src = 'about:blank'; // Clear iframe content
+            frameB.src = 'about:blank'; // Clear iframe content
+
+            // Show cancellation message briefly
+            status.textContent = "Comparison cancelled.";
             status.style.display = 'inline';
+            // Hide message after a short delay if no new comparison started
             setTimeout(() => { if (!isComparing) status.style.display = 'none'; }, 1500);
-        }, 300);
+        }, 300); // Short delay
     }
 
 
     /**
-     * Animiert den Fortschrittsbalken mit exponentieller Verlangsamung und Verlangsamung pro Loop.
+     * Animates the progress bar with an indeterminate, looping behavior.
+     * The animation slows down exponentially with each loop to give a sense of progress.
      */
     function animateProgressBar() {
-        const baseIncrementLinear = 0.5; // Grundgeschwindigkeit für 0-90%
-        const baseIncrementExpoMin = 0.01; // Mindestgeschwindigkeit für 90-99%
-        const expoFactor = 0.02; // Faktor für exponentielle Verlangsamung
+        const baseIncrementLinear = 0.5; // Base speed for 0-90%
+        const baseIncrementExpoMin = 0.01; // Min speed for 90-99%
+        const expoFactor = 0.02; // Slowdown factor near 99%
 
-        progressBarLoopCount = 0; // Zähler bei Start zurücksetzen
+        progressBarLoopCount = 0; // Reset loop counter on start
 
         function step() {
-            if (!isComparing) { // Stoppe sofort, wenn nicht mehr verglichen wird
-                progressAnimationId = null;
+            // Stop animation immediately if comparison is no longer active
+            if (!isComparing) {
+                progressAnimationId = null; // Clear animation ID
                 return;
             }
 
             let progress = progressBar.value;
-            // Aktuelle Geschwindigkeit basierend auf Loop-Anzahl berechnen (halbiert pro Loop)
-            // Math.pow(basis, exponent)
-            const speedModifier = Math.pow(0.5, progressBarLoopCount); // 0.5^0=1, 0.5^1=0.5, 0.5^2=0.25 etc.
+            // Calculate speed modifier based on loop count (halves each loop)
+            const speedModifier = Math.pow(0.5, progressBarLoopCount); // 0.5^0=1, 0.5^1=0.5, etc.
             const currentIncrementLinear = baseIncrementLinear * speedModifier;
             const currentIncrementExpoMin = baseIncrementExpoMin * speedModifier;
 
             if (progress < 90) {
-                progress += Math.max(0.01, currentIncrementLinear); // Mindestbewegung sicherstellen
+                // Linear increase phase, adjusted by loop slowdown
+                progress += Math.max(0.01, currentIncrementLinear); // Ensure minimal movement
             } else if (progress < 99) {
+                // Exponential slowdown phase near 99%, adjusted by loop slowdown
                 const remaining = 99 - progress;
-                // Increment wird kleiner, je näher an 99, und langsamer pro Loop
                 const increment = Math.max(currentIncrementExpoMin, remaining * expoFactor * speedModifier);
                 progress += increment;
             } else {
-                // Bei 99% angekommen -> Neustart bei 0 und Loop zählen
+                // Reached 99%, loop back to 0 and increment loop counter
                 progress = 0;
-                progressBarLoopCount++; // Erhöhe Zähler für nächsten, langsameren Durchlauf
-                console.log(`Progress bar loop ${progressBarLoopCount}, speed modifier: ${Math.pow(0.5, progressBarLoopCount)}`); // Log zur Info
+                progressBarLoopCount++;
+                console.log(`Progress bar loop ${progressBarLoopCount}, speed modifier: ${speedModifier}`); // Log loop info
             }
 
-            progressBar.value = Math.min(progress, 99); // Kappe bei 99
+            progressBar.value = Math.min(progress, 99); // Cap progress at 99 during animation
 
-            progressAnimationId = requestAnimationFrame(step); // Nächsten Frame anfordern
+            // Request the next animation frame
+            progressAnimationId = requestAnimationFrame(step);
         }
-        // Starte die Animation nur, wenn sie nicht schon läuft
+
+        // Start animation only if it's not already running
         if (!progressAnimationId) {
             progressAnimationId = requestAnimationFrame(step);
         }
     }
 
     /**
-     * Zeigt die Ergebnisse an (ohne CSS-Klassen für Transition).
+     * Displays the comparison results in the table and loads the visualizations.
+     * @param {Array} data - The array of SortResult objects from the backend.
+     * @param {string} datasetKey - The key/name of the dataset used.
+     * @param {number} vizSpeed - The visualization speed (delay) in ms.
+     * @param {number} elementCount - The number of elements used.
      */
     function showResultsAndVisualizations(data, datasetKey, vizSpeed, elementCount) {
-        if (!tbody) { console.error("Tabellen-Body (tbody) nicht gefunden!"); return; }
-        tbody.innerHTML = '';
+        if (!tbody) {
+            console.error("Result table body (tbody) not found!");
+            return;
+        }
+        tbody.innerHTML = ''; // Clear previous results
 
-        data.forEach(row => { /* ... Tabellenzeilen erstellen wie zuvor ... */
+        // Populate the table with results
+        data.forEach(row => {
             const tr = document.createElement('tr');
+            // Create previews (e.g., first 50 elements)
             const unsortedPreview = (row.unsorted || []).slice(0, 50).join(', ') + ((row.unsorted?.length || 0) > 50 ? '...' : '');
             const sortedPreview = (row.sorted || []).slice(0, 50).join(', ') + ((row.sorted?.length || 0) > 50 ? '...' : '');
-            tr.innerHTML = `<td>${row.algorithm ?? '-'}</td><td>${row.durationMillis?.toLocaleString() ?? '-'}</td><td>${row.steps?.toLocaleString() ?? '-'}</td><td>${unsortedPreview || '-'}</td><td>${sortedPreview || '-'}</td><td>${row.worstCase ?? '-'}</td><td>${row.averageCase ?? '-'}</td><td>${row.bestCase ?? '-'}</td>`;
+            // Fill table cells, using '?? -' for null safety
+            tr.innerHTML = `
+                <td>${row.algorithm ?? '-'}</td>
+                <td>${row.durationMillis?.toLocaleString() ?? '-'}</td>
+                <td>${row.steps?.toLocaleString() ?? '-'}</td>
+                <td>${unsortedPreview || '-'}</td>
+                <td>${sortedPreview || '-'}</td>
+                <td>${row.worstCase ?? '-'}</td>
+                <td>${row.averageCase ?? '-'}</td>
+                <td>${row.bestCase ?? '-'}</td>`;
             tbody.appendChild(tr);
         });
 
-        // Tabelle und Iframes direkt sichtbar machen via display
-        table.style.display = 'table'; // Korrekter Display-Wert für Tabellen
+        // Make table and iframes visible using CSS display property
+        table.style.display = 'table'; // Use 'table' for correct table rendering
         frameA.style.display = 'block';
         frameB.style.display = 'block';
 
-        // Visualisierungen laden
+        // Construct visualization URL parameters
         const vizUrlParams = `&dataset=${encodeURIComponent(datasetKey)}&speed=${vizSpeed}&count=${elementCount}`;
-        // Wichtig: Kurze Verzögerung *vor* dem Setzen der src, damit das display:block erst wirkt
+
+        // Load visualizations into iframes after a short delay
+        // This ensures the display:block takes effect before src is set, preventing potential issues.
         setTimeout(() => {
             frameA.src = `/visualizer.html?algo=${encodeURIComponent(selectedAlgorithmA)}${vizUrlParams}`;
             frameB.src = `/visualizer.html?algo=${encodeURIComponent(selectedAlgorithmB)}${vizUrlParams}`;
-        }, 50); // 50ms sollten reichen
+        }, 50); // 50ms delay
 
-        status.textContent = "Vergleich abgeschlossen."; // Finale Statusmeldung
+        status.textContent = "Comparison complete."; // Update status message
     }
 
 
     /**
-     * Startet den Vergleichsprozess.
+     * Initiates the comparison process. Handles UI updates, fetch request, and result display.
      */
     async function startCompare() {
-        // --- Gültigkeit der Auswahl prüfen ---
-        if (!selectedAlgorithmA || !selectedAlgorithmB || !allAlgorithmNames.includes(searchInputA.value) || !allAlgorithmNames.includes(searchInputB.value)) { /*...*/ alert("..."); return; }
-        selectedAlgorithmA = searchInputA.value; selectedAlgorithmB = searchInputB.value;
+        // --- Input Validation ---
+        // Ensure both algorithms are selected and valid from the available list
+        if (!selectedAlgorithmA || !selectedAlgorithmB ||
+            !allAlgorithmNames.includes(searchInputA.value) ||
+            !allAlgorithmNames.includes(searchInputB.value)) {
+            alert("Please select two valid algorithms from the list.");
+            return;
+        }
+        // Update selected names from input fields in case they were typed
+        selectedAlgorithmA = searchInputA.value;
+        selectedAlgorithmB = searchInputB.value;
 
-        // Alte Ergebnisse/Visualisierungen ausblenden via display
+        // Hide previous results and clear iframes
         table.style.display = 'none';
         frameA.style.display = 'none';
         frameB.style.display = 'none';
-        frameA.src = 'about:blank'; frameB.src = 'about:blank';
+        frameA.src = 'about:blank';
+        frameB.src = 'about:blank';
         if (tbody) tbody.innerHTML = '';
 
-        // Parameter holen und validieren (wie zuvor)
+        // --- Get Parameters and Validate ---
         const elementCount = parseInt(elementCountInput.value, 10);
         let vizSpeed = parseInt(speedInput.value, 10);
         const datasetKey = datasetSelect.value;
-        // ...(Validierungslogik wie zuvor)...
-        const minCount = 5, maxCount = 1000000, minSpeed = 0, maxSpeed = 1000; if (isNaN(elementCount) || elementCount < minCount || elementCount > maxCount) { await loadDatasets(); startCompare(); return; } if (isNaN(vizSpeed) || vizSpeed < minSpeed || vizSpeed > maxSpeed) { speedInput.value = vizSpeed = isNaN(vizSpeed) || vizSpeed < minSpeed ? minSpeed : maxSpeed; } const inputData = datasets[datasetKey]; if (!inputData) { await loadDatasets(); if (!datasets[datasetKey]) { resetUI(); return; } startCompare(); return; }
+        const minCount = 5, maxCount = 1000000, minSpeed = 0, maxSpeed = 1000;
 
-
-        // --- Warnung (wie zuvor) ---
-        // ...(Warnungslogik wie zuvor)...
-        const detailsA = algorithmDetails[selectedAlgorithmA]; const detailsB = algorithmDetails[selectedAlgorithmB]; let showWarning = false; /* ... Logik ... */ if (showWarning) { const proceed = confirm(`WARNUNG:\n${reason}\n\nStart?`); if (!proceed) return; }
-
-        // --- Vergleich starten ---
-        isComparing = true;
-        currentCompareController = new AbortController();
-
-        // UI für Ladezustand
-        status.style.display = 'inline'; status.textContent = "Sortiere Daten...";
-        compareBtn.textContent = 'Abbruch'; compareBtn.classList.add('cancel-btn');
-        progressBar.style.display = 'block'; // Progressbar sichtbar machen
-        progressBar.value = 0; // Start bei 0
-
-        // Eingabefelder deaktivieren
-        searchInputA.disabled = true; searchInputB.disabled = true; datasetSelect.disabled = true; elementCountInput.disabled = true; speedInput.disabled = true;
-
-        // Starte die Progress Bar Animation
-        animateProgressBar();
-
-        let fetchedData = null; // Variable für die Ergebnisse
-
-        try {
-            // Request-Payload und Fetch (wie zuvor)
-            const payload = { algorithms: [selectedAlgorithmA, selectedAlgorithmB], input: inputData };
-            const res = await fetch('/api/compare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: currentCompareController.signal });
-
-            // ***** Fetch ist fertig *****
-            isComparing = false; // Signalisiert der Animation, dass Fetch fertig ist
-            if (progressAnimationId) cancelAnimationFrame(progressAnimationId); // Stoppe die Animation
-            progressAnimationId = null; // ID zurücksetzen
-            progressBar.value = 100; // Setze Balken auf 100%
-
-            // Fehlerbehandlung für Fetch
-            if (!res.ok) { let e = `Fetch Error: ${res.status}`; try { const d = await res.json(); e += `\n${d.message||''}`; } catch(_) {} throw new Error(e); }
-
-            fetchedData = await res.json();
-            status.textContent = "Vergleich abgeschlossen. Zeige Ergebnisse...";
-
-
-        } catch (err) { // Fehler oder Abbruch
-            isComparing = false; if (progressAnimationId) cancelAnimationFrame(progressAnimationId); progressAnimationId = null;
-            if (err.name === 'AbortError') { console.log("Fetch abgebrochen."); /* resetUI durch cancelCompare */ }
-            else { console.error("Fehler:", err); alert("Fehler: " + (err.message || "Unbekannt")); status.textContent = "Fehler!"; progressBar.value = 0; setTimeout(resetUI, 1500); }
-            return; // Wichtig: Beende bei Fehler/Abbruch
+        // Revalidate element count, reload datasets if invalid and try again
+        if (isNaN(elementCount) || elementCount < minCount || elementCount > maxCount) {
+            console.warn("Invalid element count, reloading datasets...");
+            await loadDatasets(); // Reload datasets which clamps the value
+            // Attempt to start compare again with potentially corrected value
+            startCompare(); // Recursive call, ensure base case prevents infinite loop
+            return;
+        }
+        // Validate and clamp visualization speed
+        if (isNaN(vizSpeed) || vizSpeed < minSpeed || vizSpeed > maxSpeed) {
+            vizSpeed = isNaN(vizSpeed) || vizSpeed < minSpeed ? minSpeed : maxSpeed;
+            speedInput.value = vizSpeed; // Update input field
+        }
+        // Ensure selected dataset exists, reload if not and try again
+        const inputData = datasets[datasetKey];
+        if (!inputData) {
+            console.warn(`Dataset "${datasetKey}" not found, reloading datasets...`);
+            await loadDatasets();
+            // Check again after reload
+            if (!datasets[datasetKey]) {
+                alert(`Selected dataset "${datasetKey}" is still invalid after reload.`);
+                resetUI(); // Reset UI as we cannot proceed
+                return;
+            }
+            // Attempt to start compare again
+            startCompare(); // Recursive call
+            return;
         }
 
-        // --- Erfolgreicher Abschluss ---
-        // Kurze Verzögerung (z.B. 300ms), um 100% anzuzeigen, dann ausblenden und Ergebnisse zeigen
+
+        // --- Optional Warning for Slow Algorithms/Large Data ---
+        const detailsA = algorithmDetails[selectedAlgorithmA];
+        const detailsB = algorithmDetails[selectedAlgorithmB];
+        let showWarning = false;
+        let reason = "";
+        const isSlowA = detailsA?.worstCase?.includes("n²") || detailsA?.worstCase?.includes("∞");
+        const isSlowB = detailsB?.worstCase?.includes("n²") || detailsB?.worstCase?.includes("∞");
+        if ((isSlowA || isSlowB) && elementCount > 5000) { // Threshold for warning
+            showWarning = true;
+            reason = `Algorithm(s) with O(n²) or worse complexity might be slow with ${elementCount} elements.`;
+        }
+        // Add more specific warnings (e.g., BogoSort) if needed
+        if (selectedAlgorithmA === 'BogoSort' || selectedAlgorithmB === 'BogoSort' || selectedAlgorithmA === 'BozoSort' || selectedAlgorithmB === 'BozoSort') {
+            if (elementCount > 10) { // Very low threshold for these
+                showWarning = true;
+                reason += `\n${selectedAlgorithmA === 'BogoSort' || selectedAlgorithmA === 'BozoSort' ? selectedAlgorithmA : selectedAlgorithmB} may take an extremely long time (or never finish) for ${elementCount} elements.`;
+            }
+        }
+        // Show confirmation dialog if warning is triggered
+        if (showWarning) {
+            const proceed = confirm(`WARNING:\n${reason}\n\nDo you want to start the comparison anyway?`);
+            if (!proceed) {
+                return; // User cancelled
+            }
+        }
+
+        // --- Start Comparison ---
+        isComparing = true;
+        currentCompareController = new AbortController(); // For aborting the fetch
+
+        // Update UI to loading state
+        status.style.display = 'inline';
+        status.textContent = "Sorting data...";
+        compareBtn.textContent = 'Cancel'; // Change button text
+        compareBtn.classList.add('cancel-btn'); // Add cancel styling
+        progressBar.style.display = 'block'; // Show progress bar
+        progressBar.value = 0; // Reset progress
+
+        // Disable input fields during comparison
+        searchInputA.disabled = true;
+        searchInputB.disabled = true;
+        datasetSelect.disabled = true;
+        elementCountInput.disabled = true;
+        speedInput.disabled = true;
+
+        // Start the progress bar animation
+        animateProgressBar();
+
+        let fetchedData = null; // To store results from fetch
+
+        try {
+            // Prepare request payload
+            const payload = {
+                algorithms: [selectedAlgorithmA, selectedAlgorithmB],
+                input: inputData
+            };
+
+            // Perform the fetch request to the backend API
+            const response = await fetch('/api/compare', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: currentCompareController.signal // Pass the abort signal
+            });
+
+            // --- Fetch Completed ---
+            isComparing = false; // Signal completion to animation loop
+            if (progressAnimationId) cancelAnimationFrame(progressAnimationId); // Stop animation
+            progressAnimationId = null;
+            progressBar.value = 100; // Set progress to 100%
+
+            // Check for HTTP errors
+            if (!response.ok) {
+                let errorMsg = `Fetch Error: ${response.status}`;
+                try {
+                    const errorData = await response.json(); // Try to get error details from body
+                    errorMsg += `\n${errorData.message || JSON.stringify(errorData)}`;
+                } catch (_) { /* Ignore if body parsing fails */ }
+                throw new Error(errorMsg);
+            }
+
+            // Parse successful response
+            fetchedData = await response.json();
+            status.textContent = "Comparison complete. Displaying results...";
+
+        } catch (error) { // Handle fetch errors or abortion
+            isComparing = false; // Ensure flag is reset
+            if (progressAnimationId) cancelAnimationFrame(progressAnimationId); // Stop animation
+            progressAnimationId = null;
+
+            if (error.name === 'AbortError') {
+                console.log("Fetch aborted by user.");
+                // resetUI is handled by cancelCompare function
+            } else {
+                // Handle actual network or backend errors
+                console.error("Comparison error:", error);
+                alert("Error during comparison: " + (error.message || "Unknown error"));
+                status.textContent = "Error!";
+                progressBar.value = 0; // Reset progress on error
+                // Briefly show error, then reset UI
+                setTimeout(resetUI, 1500);
+            }
+            return; // Important: Stop execution on error/abort
+        }
+
+        // --- Successful Completion ---
+        // Short delay to show 100% progress before hiding bar and showing results
         setTimeout(() => {
-            // Nur fortfahren, wenn nicht zwischenzeitlich abgebrochen wurde
+            // Ensure cancellation didn't happen *after* fetch but *before* this timeout
             if (!currentCompareController || !currentCompareController.signal.aborted) {
-                progressBar.style.display = 'none'; // Progressbar ausblenden
+                progressBar.style.display = 'none'; // Hide progress bar
                 if (fetchedData) {
-                    // Ergebnisse und Visualisierungen anzeigen (JETZT)
+                    // Display results and load visualizations
                     showResultsAndVisualizations(fetchedData, datasetKey, vizSpeed, elementCount);
                 }
-                resetUI(); // UI-Eingaben etc. zurücksetzen
+                resetUI(); // Reset inputs, button, etc.
             } else {
-                console.log("Anzeige übersprungen, da Abbruch nach Fetch erfolgte.");
-                // resetUI wurde bereits von cancelCompare aufgerufen
+                console.log("Result display skipped as cancellation occurred after fetch.");
+                // resetUI was already called by cancelCompare
             }
-        }, 300);
+        }, 300); // 300ms delay
 
     }
 
-    // --- Event Listener (wie zuvor) ---
-    compareBtn.addEventListener('click', () => { if (isComparing) cancelCompare(); else startCompare(); });
-    elementCountInput.addEventListener('change', loadDatasets);
-    searchInputA.addEventListener('input', () => updateSearchResults('A')); searchInputA.addEventListener('focus', () => updateSearchResults('A')); searchInputA.addEventListener('blur', () => { setTimeout(() => { if (!searchResultsA.contains(document.activeElement)) { searchResultsA.style.display = 'none'; if (!allAlgorithmNames.includes(searchInputA.value)) searchInputA.value = selectedAlgorithmA ?? ''; } }, 150); });
-    searchInputB.addEventListener('input', () => updateSearchResults('B')); searchInputB.addEventListener('focus', () => updateSearchResults('B')); searchInputB.addEventListener('blur', () => { setTimeout(() => { if (!searchResultsB.contains(document.activeElement)) { searchResultsB.style.display = 'none'; if (!allAlgorithmNames.includes(searchInputB.value)) searchInputB.value = selectedAlgorithmB ?? ''; } }, 150); });
+    // --- Event Listeners ---
+    // Compare/Cancel button click handler
+    compareBtn.addEventListener('click', () => {
+        if (isComparing) {
+            cancelCompare();
+        } else {
+            startCompare();
+        }
+    });
 
-    // Initiales Laden
-    async function initializeApp() { await loadAlgorithms(); await loadDatasets(); }
+    // Reload datasets when element count changes
+    elementCountInput.addEventListener('change', loadDatasets);
+
+    // Search input A listeners (input, focus, blur)
+    searchInputA.addEventListener('input', () => updateSearchResults('A'));
+    searchInputA.addEventListener('focus', () => updateSearchResults('A'));
+    searchInputA.addEventListener('blur', () => {
+        // Use setTimeout to allow click on results before hiding
+        setTimeout(() => {
+            // Check if focus moved outside the results container
+            if (!searchResultsA.contains(document.activeElement)) {
+                searchResultsA.style.display = 'none';
+                // Revert input if value isn't a valid algorithm name
+                if (!allAlgorithmNames.includes(searchInputA.value)) {
+                    searchInputA.value = selectedAlgorithmA ?? '';
+                }
+            }
+        }, 150); // Delay allows click event on results to register
+    });
+
+    // Search input B listeners (input, focus, blur)
+    searchInputB.addEventListener('input', () => updateSearchResults('B'));
+    searchInputB.addEventListener('focus', () => updateSearchResults('B'));
+    searchInputB.addEventListener('blur', () => {
+        // Use setTimeout to allow click on results before hiding
+        setTimeout(() => {
+            // Check if focus moved outside the results container
+            if (!searchResultsB.contains(document.activeElement)) {
+                searchResultsB.style.display = 'none';
+                // Revert input if value isn't a valid algorithm name
+                if (!allAlgorithmNames.includes(searchInputB.value)) {
+                    searchInputB.value = selectedAlgorithmB ?? '';
+                }
+            }
+        }, 150); // Delay allows click event on results to register
+    });
+
+
+    // --- Initialization ---
+    /**
+     * Initializes the application by loading algorithms and datasets.
+     */
+    async function initializeApp() {
+        await loadAlgorithms(); // Load algorithm list first
+        await loadDatasets(); // Then load datasets
+        // UI should now be ready
+    }
+
+    // Run initialization when the script loads
     initializeApp();
 
 </script>

@@ -7,32 +7,43 @@ import java.util.function.Consumer;
 import sorting.algorithms.project.dto.SortStep;
 
 /**
- * Eine abstrakte Basisklasse für Sortieralgorithmen, die eine Kopie sortieren.
- * Subklassen müssen `sortWithCallback` implementieren.
+ * An abstract base class for sorting algorithms that operate on a copy of the input list.
+ * Subclasses must implement the `sortWithCallback` method to provide the actual sorting logic
+ * and step-by-step visualization details.
  */
 @Component
 public abstract class AbstractSort implements SortingAlgorithm {
 
     /**
-     * Sortiert eine Kopie der Eingabeliste, indem die `sortWithCallback`-Methode
-     * mit einem leeren Callback aufgerufen wird.
-     * @param input Die zu sortierende Liste.
-     * @return Eine neue, sortierte Liste.
+     * Sorts a copy of the input list.
+     * This method creates a copy of the input list and then calls the
+     * `sortWithCallback` method (implemented by subclasses) with a no-op callback.
+     * This ensures the original list remains unmodified for the basic sort operation.
+     *
+     * @param input The list of integers to be sorted.
+     * @return A new list containing the sorted elements.
      */
     @Override
     public List<Integer> sort(List<Integer> input) {
+        // Create a mutable copy of the input list to sort.
         List<Integer> copy = new ArrayList<>(input);
-        // Ruft die von der Subklasse implementierte Callback-Version auf
+        // Call the abstract sortWithCallback method with a consumer that does nothing.
+        // The actual sorting logic is defined in the concrete subclass.
         sortWithCallback(copy, (SortStep step) -> {});
+        // Return the sorted copy.
         return copy;
     }
 
     /**
-     * Abstrakte Methode, die von Subklassen implementiert werden muss,
-     * um die "in-place" Sortierung mit detaillierter Schritt-Visualisierung durchzuführen.
-     * @param input Die zu sortierende Liste (wird von der Implementierung modifiziert).
-     * @param stepCallback Der Consumer, der jeden SortStep (mit Array-Zustand und
-     * Indizes) für die Visualisierung empfängt.
+     * Abstract method to be implemented by concrete sorting algorithm subclasses.
+     * This method should perform the sorting operation in-place on the provided list
+     * and utilize the `stepCallback` consumer to report the state of the array
+     * and relevant indices (accessed, changed) after each significant step
+     * (e.g., comparison, swap, insertion) for visualization purposes.
+     *
+     * @param input The list of integers to be sorted (will be modified in-place).
+     * @param stepCallback A consumer function that accepts a {@link SortStep} object,
+     * allowing the algorithm to report its progress for visualization.
      */
     @Override
     public abstract void sortWithCallback(List<Integer> input, Consumer<SortStep> stepCallback);

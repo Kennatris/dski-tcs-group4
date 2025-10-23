@@ -1,236 +1,287 @@
 <!DOCTYPE html>
-<html lang="de">
-<head>
+<html lang="en"> <head>
     <meta charset="UTF-8">
-    <title>Sortier-Visualisierung</title>
-    <link rel="stylesheet" href="visualizer.css" />
+    <title>Sorting Visualization</title> <link rel="stylesheet" href="visualizer.css" />
 </head>
 <body>
 <canvas id="canvas" width="600" height="298"></canvas>
 <p id="status">Status: Connecting...</p>
 
 <script>
+    // --- Canvas and Context ---
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const statusElement = document.getElementById('status');
 
+    // --- Get URL Parameters ---
     const params = new URLSearchParams(window.location.search);
-    const algorithm = params.get('algo');
-    const dataset = params.get('dataset');
-    const speed = params.get('speed');
-    const count = params.get('count');
+    const algorithm = params.get('algo'); // Algorithm name
+    const dataset = params.get('dataset'); // Dataset name (optional)
+    const speed = params.get('speed');     // Visualization speed (delay in ms)
+    const count = params.get('count');     // Element count (used if dataset is generated)
 
-    let url = `/api/compare/visualizer/${algorithm}`;
+    // --- Build Backend SSE URL ---
+    let url = `/api/compare/visualizer/${algorithm}`; // Base URL
     const queryParams = [];
+    // Add optional parameters if they exist
     if (dataset) queryParams.push(`dataset=${encodeURIComponent(dataset)}`);
     if (speed) queryParams.push(`speed=${speed}`);
     if (count) queryParams.push(`count=${encodeURIComponent(count)}`);
+    // Append query string if parameters were added
     if (queryParams.length > 0) url += `?${queryParams.join('&')}`;
 
-    let startTime = null;
-    let timerId = null;
-    let lastReceivedData = null; // Speichert das rohe JSON des letzten Schritts
-    let lastProcessedArrayState = null; // Speichert nur den Array-Teil des letzten verarbeiteten Schritts
-    let isFinished = false;
+    // --- State Variables ---
+    let startTime = null; // Timestamp when connection opened
+    let timerId = null; // Interval ID for updating elapsed time display
+    let lastReceivedData = null; // Raw JSON string of the last received step
+    let lastProcessedArrayState = null; // Stringified array state of the last drawn step (optional optimization)
+    let isFinished = false; // Flag indicating if the sorting/SSE stream has finished
 
-    // --- Separate Historien für Hervorhebungen ---
-    let recentlyChangedIndices = []; // Letzte 6 Änderungen (Rot)
-    let recentlyAccessedIndices = []; // Letzte 6 Zugriffe (Gelb)
-    const HIGHLIGHT_COUNT = 6; // Anzahl der zu merkenden Indizes
+    // --- Highlight History (for fading effect) ---
+    // Store the indices from the most recent N steps
+    let recentlyChangedIndices = []; // Stores last N changed indices (drawn red)
+    let recentlyAccessedIndices = []; // Stores last N accessed indices (drawn yellow)
+    const HIGHLIGHT_COUNT = 6; // How many steps back to keep highlights visible
 
-    // --- Farbkonstanten ---
-    const COLOR_FINISHED = '#28a745'; // Grün
-    const COLOR_CHANGED = '#dc3545';  // Rot
-    const COLOR_ACCESSED = '#ffc107'; // Gelb
-    const COLOR_DEFAULT = 'steelblue'; // Blau
+    // --- Color Constants ---
+    const COLOR_FINISHED = '#28a745'; // Green for final sorted state
+    const COLOR_CHANGED = '#dc3545';  // Red for recently changed elements
+    const COLOR_ACCESSED = '#ffc107'; // Yellow for recently accessed elements
+    const COLOR_DEFAULT = 'steelblue'; // Default bar color
 
     /**
-     * Aktualisiert die Anzeige der verstrichenen Zeit.
+     * Updates the elapsed time display in the status element.
      */
     function updateElapsedTime() {
-        if (!startTime || isFinished) return;
+        if (!startTime || isFinished) return; // Only update if running
         const now = Date.now();
-        const elapsedSeconds = ((now - startTime) / 1000).toFixed(1);
+        const elapsedSeconds = ((now - startTime) / 1000).toFixed(1); // Calculate seconds elapsed
         statusElement.textContent = `Status: Running... Elapsed: ${elapsedSeconds}s`;
     }
 
     /**
-     * Fügt neue Indizes zu einer Highlight-Liste hinzu und hält sie auf maximaler Länge.
-     * @param {number[]} indexList Die Liste, die aktualisiert werden soll (z.B. recentlyChangedIndices).
-     * @param {number[]} newIndices Die neuen Indizes aus dem aktuellen Schritt.
+     * Updates a highlight list (accessed or changed) by adding new indices
+     * and ensuring the list doesn't exceed HIGHLIGHT_COUNT.
+     * New indices are added to the end, oldest ones are removed from the start.
+     * @param {number[]} indexList - The highlight list to update (e.g., recentlyChangedIndices).
+     * @param {number[]} newIndices - The indices from the current SortStep.
      */
     function updateHighlightList(indexList, newIndices) {
         newIndices.forEach(index => {
-            // Entferne den Index, falls er schon existiert, um ihn ans Ende zu schieben
+            // Remove the index if it already exists to move it to the end (most recent)
             const existingPos = indexList.indexOf(index);
             if (existingPos > -1) {
                 indexList.splice(existingPos, 1);
             }
-            // Füge den neuen Index am Ende hinzu
+            // Add the new index to the end
             indexList.push(index);
         });
-        // Kürze die Liste von vorne, falls sie zu lang wird
+        // Remove oldest indices from the beginning if the list exceeds the limit
         while (indexList.length > HIGHLIGHT_COUNT) {
             indexList.shift();
         }
     }
 
-
-    statusElement.textContent = 'Status: Connecting...';
-    const evtSource = new EventSource(url);
+    // --- EventSource Setup ---
+    statusElement.textContent = 'Status: Connecting...'; // Initial status
+    const evtSource = new EventSource(url); // Create the EventSource connection
 
     /**
-     * Event-Handler beim Öffnen der SSE-Verbindung.
+     * Handles the 'open' event of the EventSource connection.
+     * Initializes timer and resets state variables.
      */
     evtSource.onopen = function() {
-        startTime = Date.now();
-        statusElement.textContent = 'Status: Running... Elapsed: 0.0s';
-        timerId = setInterval(updateElapsedTime, 100);
+        startTime = Date.now(); // Record start time
+        statusElement.textContent = 'Status: Running... Elapsed: 0.0s'; // Update status
+        timerId = setInterval(updateElapsedTime, 100); // Start updating elapsed time
+        // Reset state for potential reconnection
         lastReceivedData = null;
         lastProcessedArrayState = null;
         isFinished = false;
-        recentlyChangedIndices = []; // Zurücksetzen
-        recentlyAccessedIndices = []; // Zurücksetzen
+        recentlyChangedIndices = [];
+        recentlyAccessedIndices = [];
     };
 
     /**
-     * Event-Handler für eingehende SSE-Nachrichten (SortSteps).
+     * Handles incoming 'message' events from the EventSource (SSE stream).
+     * Parses the SortStep data and triggers a redraw of the canvas.
      */
-    evtSource.onmessage = function(e) {
-        if (isFinished) return;
+    evtSource.onmessage = function(event) {
+        if (isFinished) return; // Ignore messages after completion/error
 
-        // Verhindere Verarbeitung identischer Rohdaten
-        if (e.data === lastReceivedData) return;
-        lastReceivedData = e.data;
+        // Optimization: Avoid parsing and drawing if the raw data hasn't changed
+        if (event.data === lastReceivedData) return;
+        lastReceivedData = event.data;
 
         try {
-            const stepData = JSON.parse(e.data);
-            const arr = stepData.currentArray;
-            // Lese die Indizes aus dem Schritt, Fallback auf leere Arrays
+            // Parse the JSON data received from the server
+            const stepData = JSON.parse(event.data);
+            const currentArray = stepData.currentArray;
+            // Get accessed/changed indices, defaulting to empty arrays if missing
             const currentAccessed = stepData.accessedIndices || [];
             const currentChanged = stepData.changedIndices || [];
 
-            if (!arr) {
-                console.warn("Received stepData, but 'currentArray' field was missing.", stepData);
+            // Basic validation: ensure we have an array to draw
+            if (!currentArray) {
+                console.warn("Received step data missing 'currentArray':", stepData);
                 return;
             }
 
-            // Optional: Verhindere Neuzeichnen, wenn sich nur Highlights ändern
-            // if (JSON.stringify(arr) === lastProcessedArrayState) return;
-            // lastProcessedArrayState = JSON.stringify(arr);
+            // Optional Optimization: Prevent redraw if only highlights changed, not the array itself
+            // const currentArrayString = JSON.stringify(currentArray);
+            // if (currentArrayString === lastProcessedArrayState) return;
+            // lastProcessedArrayState = currentArrayString;
 
-
-            // --- Aktualisiere die Highlight-Listen ---
+            // --- Update Highlight History ---
             updateHighlightList(recentlyChangedIndices, currentChanged);
             updateHighlightList(recentlyAccessedIndices, currentAccessed);
 
-
-            // --- Zeichne mit den aktualisierten Highlight-Listen ---
-            drawArray(arr, new Set(recentlyAccessedIndices), new Set(recentlyChangedIndices), false);
+            // --- Redraw Canvas ---
+            // Draw using the current array state and the updated recent highlights
+            drawArray(currentArray, new Set(recentlyAccessedIndices), new Set(recentlyChangedIndices), false);
 
         } catch (error) {
-            console.error("Failed to parse SSE data:", error, e.data);
+            // Handle JSON parsing errors
+            console.error("Failed to parse SSE data:", error, event.data);
             statusElement.textContent = 'Status: Error parsing data!';
-            if (timerId) clearInterval(timerId);
-            isFinished = true;
-            evtSource.close();
+            if (timerId) clearInterval(timerId); // Stop timer
+            isFinished = true; // Mark as finished
+            evtSource.close(); // Close connection
         }
     };
 
     /**
-     * Event-Handler für Fehler oder Schließen der SSE-Verbindung.
+     * Handles 'error' events or the closing of the EventSource connection.
+     * Updates status and draws the final state if available.
      */
     evtSource.onerror = function(event) {
-        isFinished = true;
-        if (timerId) clearInterval(timerId);
+        isFinished = true; // Mark as finished
+        if (timerId) clearInterval(timerId); // Stop timer
 
+        // Check if the connection closed normally or if it was an actual error
         if (evtSource.readyState === EventSource.CLOSED || event.eventPhase === EventSource.CLOSED) {
+            // Connection closed successfully (end of stream)
             if (startTime) {
+                // Calculate final elapsed time
                 const finalElapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
                 statusElement.textContent = `Status: Finished in ${finalElapsedSeconds}s`;
             } else {
                 statusElement.textContent = 'Status: Finished (connection closed)';
             }
 
-            // Zeichne den letzten bekannten Zustand grün
+            // Draw the very last received state in green (finished state)
             if(lastReceivedData) {
                 try {
                     const stepData = JSON.parse(lastReceivedData);
-                    const arr = stepData.currentArray;
-                    if (arr) {
-                        // Keine Highlights im Endzustand
-                        drawArray(arr, new Set(), new Set(), true);
+                    const finalArray = stepData.currentArray;
+                    if (finalArray) {
+                        // Draw final state without any red/yellow highlights
+                        drawArray(finalArray, new Set(), new Set(), true); // isFinishedState = true
                     }
                 } catch(e){
                     console.error("Error drawing final state:", e);
                 }
             }
         } else {
+            // An actual error occurred
             statusElement.textContent = 'Status: Error or disconnected.';
             console.error("SSE Error:", event);
         }
 
+        // Ensure the connection is closed if not already
         if (evtSource.readyState !== EventSource.CLOSED) {
             evtSource.close();
         }
     };
 
     /**
-     * Zeichnet das Array auf den Canvas mit Farb-Priorisierung (Grün > Rot > Gelb > Blau).
-     * @param {number[]} arr Das zu zeichnende Array.
-     * @param {Set<number>} accessedSet Set der Indizes aus den letzten Schritten, die angeschaut wurden (gelb).
-     * @param {Set<number>} changedSet Set der Indizes aus den letzten Schritten, die geändert wurden (rot).
-     * @param {boolean} isFinishedState Wenn true, wird alles grün gezeichnet.
+     * Draws the current state of the array onto the canvas.
+     * Highlights elements based on recent access or changes.
+     * @param {number[]} arr - The array representing the data to visualize.
+     * @param {Set<number>} accessedSet - Set of indices recently accessed.
+     * @param {Set<number>} changedSet - Set of indices recently changed.
+     * @param {boolean} [isFinishedState=false] - If true, all bars are drawn green.
      */
     function drawArray(arr, accessedSet, changedSet, isFinishedState = false) {
+        // Clear the canvas before drawing
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Schutz gegen leeres oder ungültiges Array
+
+        // Handle empty or invalid array gracefully
         if (!arr || arr.length === 0) {
+            console.warn("drawArray called with empty or invalid array.");
             return;
         }
-        const w = canvas.width / arr.length;
-        const maxHeight = canvas.height;
 
+        // Calculate bar width based on canvas width and array length
+        const barWidth = canvas.width / arr.length;
+        const canvasHeight = canvas.height;
+
+        // Find the maximum value in the array for scaling bar heights
+        // Filter out non-numeric/infinite values before finding max
         let maxValue = 0;
         try {
-            maxValue = Math.max(...arr.filter(val => typeof val === 'number' && isFinite(val))); // Finde Max nur von gültigen Zahlen
+            const numericValues = arr.filter(val => typeof val === 'number' && isFinite(val));
+            maxValue = numericValues.length > 0 ? Math.max(...numericValues) : 1; // Use 1 if no valid numbers
         } catch (e) {
-            // Fallback, falls arr keine gültigen Zahlen enthält
-            maxValue = 1;
+            maxValue = 1; // Fallback in case of unexpected errors
+            console.error("Error finding max value:", e);
         }
-        if (!isFinite(maxValue) || maxValue <= 0) maxValue = 1; // Fallback, falls Max 0, negativ oder ungültig ist
+        // Ensure maxValue is positive for scaling
+        if (!isFinite(maxValue) || maxValue <= 0) maxValue = 1;
 
 
+        // Iterate through the array elements and draw a bar for each
         for (let i = 0; i < arr.length; i++) {
-            // Farb-Priorität: Grün > Rot > Gelb > Blau
+            // Determine bar color based on priority: Finished > Changed > Accessed > Default
             if (isFinishedState) {
                 ctx.fillStyle = COLOR_FINISHED;
-            } else if (changedSet.has(i)) { // Kürzlich geändert? -> Rot
+            } else if (changedSet.has(i)) { // Recently changed? -> Red
                 ctx.fillStyle = COLOR_CHANGED;
-            } else if (accessedSet.has(i)) { // Kürzlich angeschaut? -> Gelb
+            } else if (accessedSet.has(i)) { // Recently accessed? -> Yellow
                 ctx.fillStyle = COLOR_ACCESSED;
-            } else { // Standard
+            } else { // Default color
                 ctx.fillStyle = COLOR_DEFAULT;
             }
 
-            // Zeichne den Balken
-            const val = typeof arr[i] === 'number' && isFinite(arr[i]) ? arr[i] : 0; // Sicherstellen, dass val eine Zahl ist
-            const valueRatio = maxValue === 0 ? 0 : (val / maxValue);
-            const barHeightUncapped = valueRatio * maxHeight * 0.98;
-            const barHeight = Math.max(0, barHeightUncapped); // Höhe >= 0
+            // Calculate bar height based on the element's value relative to maxValue
+            // Ensure value is a valid number, default to 0 if not
+            const value = typeof arr[i] === 'number' && isFinite(arr[i]) ? arr[i] : 0;
+            // Calculate height ratio (handle maxValue being 0)
+            const valueRatio = maxValue === 0 ? 0 : (value / maxValue);
+            // Calculate bar height, scale slightly below canvas height, ensure non-negative
+            const barHeightUncapped = valueRatio * canvasHeight * 0.98; // Use 98% of height
+            const barHeight = Math.max(0, barHeightUncapped); // Ensure height is >= 0
 
-            const xPos = i * w;
-            const barWidth = Math.max(1, w - 2); // Mindestbreite 1px
-            const yPos = canvas.height - barHeight;
+            // Calculate position and width for the bar
+            const xPos = i * barWidth;
+            // Ensure a minimum width of 1px and add a small gap between bars
+            const actualBarWidth = Math.max(1, barWidth - 1); // Gap of 1px
+            const yPos = canvasHeight - barHeight; // Y position starts from bottom
 
-            // Finale Prüfung vor dem Zeichnen
-            if (isFinite(xPos) && isFinite(yPos) && isFinite(barWidth) && isFinite(barHeight) && barWidth > 0 && barHeight >= 0) {
-                ctx.fillRect(xPos, yPos, barWidth, barHeight);
+            // Final safety check for valid drawing parameters
+            if (isFinite(xPos) && isFinite(yPos) && isFinite(actualBarWidth) && isFinite(barHeight) &&
+                actualBarWidth > 0 && barHeight >= 0) {
+                ctx.fillRect(xPos, yPos, actualBarWidth, barHeight);
             } else {
-                console.warn(`Skipping invalid rect draw: i=${i}, x=${xPos}, y=${yPos}, w=${barWidth}, h=${barHeight}, val=${val}, max=${maxValue}`);
+                // Log warning if drawing parameters are invalid, skip drawing this bar
+                console.warn(`Skipping invalid rect draw: i=${i}, x=${xPos}, y=${yPos}, w=${actualBarWidth}, h=${barHeight}, val=${value}, max=${maxValue}`);
             }
         }
     }
+
+    // Optional: Add a resize handler if the canvas size should be dynamic
+    // window.addEventListener('resize', () => {
+    //     // Adjust canvas size (consider aspect ratio, parent size)
+    //     // canvas.width = ...; canvas.height = ...;
+    //     // Redraw the last known state if available
+    //     if (lastReceivedData) {
+    //         try {
+    //              const stepData = JSON.parse(lastReceivedData);
+    //              drawArray(stepData.currentArray, new Set(recentlyAccessedIndices), new Set(recentlyChangedIndices), isFinished);
+    //         } catch(e) {}
+    //     }
+    // });
+
 </script>
 </body>
 </html>

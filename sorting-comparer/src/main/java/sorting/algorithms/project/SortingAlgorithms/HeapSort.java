@@ -9,176 +9,237 @@ import java.util.Set;
 import java.util.function.Consumer;
 import sorting.algorithms.project.dto.SortStep;
 
+/**
+ * Implements the Heap Sort algorithm.
+ * It works by first building a max-heap from the input data, and then
+ * repeatedly extracting the maximum element from the heap (the root) and
+ * placing it at the end of the sorted portion of the array.
+ */
 @Component
 public class HeapSort implements SortingAlgorithm {
+    // Counter for steps (comparisons and swaps).
     private long steps;
+    // Stores the original dataset.
     private List<Integer> dataSet;
 
+    /**
+     * Returns the name of the sorting algorithm.
+     * @return The string "HeapSort".
+     */
     @Override
     public String getName() {
         return "HeapSort";
     }
 
+    /**
+     * Returns the worst-case time complexity. O(n log n).
+     * @return The string "O(n log n)".
+     */
     @Override
     public String getWorstCase() {
         return "O(n log n)";
     }
 
+    /**
+     * Returns the average-case time complexity. O(n log n).
+     * @return The string "O(n log n)".
+     */
     @Override
     public String getAverageCase() {
         return "O(n log n)";
     }
 
+    /**
+     * Returns the best-case time complexity. O(n log n).
+     * @return The string "O(n log n)".
+     */
     @Override
     public String getBestCase() {
         return "O(n log n)";
     }
 
+    /**
+     * Returns the total number of steps performed during the last sort.
+     * @return The number of steps.
+     */
     @Override
     public long getSteps() {
         return steps;
     }
 
+    /**
+     * Returns the original dataset provided to the algorithm.
+     * @return The original list of integers.
+     */
     @Override
     public List<Integer> getData() {
-        // Sicherstellen, dass dataSet nicht null ist
+        // Ensure a non-null list is returned.
         return dataSet != null ? dataSet : SortingAlgorithm.super.getData();
     }
 
+    /**
+     * Sorts a copy of the input list using Heap Sort.
+     * @param input The list of integers to sort.
+     * @return A new list containing the sorted elements.
+     */
     @Override
     public List<Integer> sort(List<Integer> input) {
+        // Create a mutable copy.
         List<Integer> copy = new ArrayList<>(input);
+        // Store original data.
         dataSet = new ArrayList<>(copy);
+        // Reset step count.
         steps = 0;
+        // Perform sort with a no-op callback.
         heapSort(copy, (SortStep step) -> {});
+        // Return sorted copy.
         return copy;
     }
 
+    /**
+     * Sorts the input list in-place using Heap Sort and reports each comparison and swap.
+     * @param input The list to be sorted (will be modified).
+     * @param stepCallback A consumer for reporting {@link SortStep} for visualization.
+     */
     @Override
     public void sortWithCallback(List<Integer> input, Consumer<SortStep> stepCallback) {
+        // Store original data.
         dataSet = new ArrayList<>(input);
+        // Reset step count.
         steps = 0;
-        // Sende initialen Zustand
+        // Send initial state.
         stepCallback.accept(new SortStep(new ArrayList<>(input), Collections.emptySet(), Collections.emptySet()));
+        // Perform the actual sorting.
         heapSort(input, stepCallback);
+        // Note: Final state is sent at the end of heapSort method.
     }
 
     /**
-     * Führt HeapSort "in-place" aus. Baut zuerst einen Max-Heap auf
-     * und extrahiert dann nacheinander das größte Element.
-     * @param arr Die zu sortierende Liste.
-     * @param stepCallback Der Callback für die Visualisierung.
+     * Performs the Heap Sort logic in-place. First builds a max-heap, then repeatedly
+     * extracts the maximum element and rebuilds the heap property.
+     * Reports steps during heap adjustments and swaps.
+     * @param arr The list to sort in-place.
+     * @param stepCallback The consumer for reporting steps.
      */
     private void heapSort(List<Integer> arr, Consumer<SortStep> stepCallback) {
         int n = arr.size();
+        // Handle lists with 0 or 1 element.
         if (n <= 1) {
-            stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet())); // Endzustand
+            stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet())); // Send final state
             return;
         }
 
 
-        // 1. Baue Max-Heap auf (heapify)
+        // 1. Build a max-heap from the input array.
+        // This involves calling heapAdjust on all non-leaf nodes.
         makeMaxHeap(arr, n, stepCallback);
 
-        // 2. Extrahiere Elemente vom Heap
+        // 2. Repeatedly extract the maximum element (root) and place it at the end.
+        // Iterate from the last element down to the second element.
         for (int i = n - 1; i > 0; i--) {
             Set<Integer> accessed = new HashSet<>();
             Set<Integer> changed = new HashSet<>();
 
-            // Tausche Wurzel (größtes Element) mit dem letzten Element
-            accessed.add(0); // Für get(0)
-            accessed.add(i); // Für get(i)
+            // Swap the root (maximum element) with the last element of the current heap (at index i).
+            accessed.add(0); // Access root.
+            accessed.add(i); // Access last element of current heap.
             int temp = arr.get(0);
             arr.set(0, arr.get(i));
             arr.set(i, temp);
-            changed.add(0);
+            changed.add(0); // Mark indices as changed.
             changed.add(i);
-            steps++; // Zähle Swap
+            steps++; // Count the swap.
 
-            // Sende Zustand nach dem Swap
+            // Report the state after swapping the max element to the end.
             stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, changed));
 
-            // Stelle Heap-Eigenschaft für reduzierten Heap wieder her
-            heapAdjust(arr, 0, i, stepCallback); // Größe ist jetzt 'i'
+            // Restore the max-heap property on the reduced heap (size i).
+            // Call heapAdjust on the root (index 0).
+            heapAdjust(arr, 0, i, stepCallback);
         }
-        // Sende finalen Zustand (kann redundant sein)
+        // Send the final sorted state.
         stepCallback.accept(new SortStep(new ArrayList<>(arr), Collections.emptySet(), Collections.emptySet()));
     }
 
     /**
-     * Erstellt einen Max-Heap aus dem gegebenen Array.
-     * @param arr Die Liste, die in einen Heap umgewandelt wird.
-     * @param n Die Größe des Heaps (oft arr.size()).
-     * @param stepCallback Der Callback für die Visualisierung.
+     * Builds a max-heap from the given list. It iterates backwards from the last
+     * non-leaf node and applies the heapAdjust operation to each node.
+     * @param arr The list to heapify.
+     * @param n The size of the heap (typically arr.size()).
+     * @param stepCallback The consumer for reporting steps within heapAdjust.
      */
     private void makeMaxHeap(List<Integer> arr, int n, Consumer<SortStep> stepCallback) {
-        // Starte beim letzten Nicht-Blattknoten und gehe rückwärts
+        // Start from the last non-leaf node (parent of the last element).
+        // The index is (n / 2) - 1.
         for (int i = n / 2 - 1; i >= 0; i--) {
+            // Restore heap property for the subtree rooted at index i.
             heapAdjust(arr, i, n, stepCallback);
         }
     }
 
     /**
-     * Stellt die Max-Heap-Eigenschaft für einen Teilbaum sicher, dessen Wurzel bei Index 'i' liegt.
-     * Geht davon aus, dass die Teilbäume unter 'i' bereits Heaps sind. (Max-Heapify)
-     * @param arr Die Liste, die den Heap repräsentiert.
-     * @param i Der Index der Wurzel des Teilbaums.
-     * @param n Die Größe des Heaps.
-     * @param stepCallback Der Callback für die Visualisierung.
+     * Restores the max-heap property for the subtree rooted at index 'i'.
+     * Assumes that the subtrees rooted at the children of 'i' are already max-heaps.
+     * This is also known as max-heapify.
+     * @param arr The list representing the heap.
+     * @param i The index of the root of the subtree to adjust.
+     * @param n The size of the heap (used for boundary checks).
+     * @param stepCallback The consumer for reporting steps (comparisons and swaps).
      */
     private void heapAdjust(List<Integer> arr, int i, int n, Consumer<SortStep> stepCallback) {
         Set<Integer> accessed = new HashSet<>();
         Set<Integer> changed = new HashSet<>();
 
-        int largest = i; // Initialisiere größten als Wurzel
-        int left = 2 * i + 1; // Linkes Kind
-        int right = 2 * i + 2; // Rechtes Kind
+        int largest = i; // Assume the root 'i' is the largest initially.
+        int left = 2 * i + 1; // Index of the left child.
+        int right = 2 * i + 2; // Index of the right child.
 
-        accessed.add(i); // Wurzel wird gelesen
+        accessed.add(i); // Root is always accessed.
 
-        // Wenn linkes Kind existiert und größer als Wurzel ist
+        // Check if the left child exists and is larger than the current largest.
         if (left < n) {
-            accessed.add(left); // Linkes Kind wird gelesen
-            steps++; // Zähle Vergleich
+            accessed.add(left); // Left child is accessed for comparison.
+            steps++; // Count comparison.
             if (arr.get(left) > arr.get(largest)) {
-                largest = left;
+                largest = left; // Update largest if left child is larger.
             }
         }
 
-        // Wenn rechtes Kind existiert und größer als bisher größtes ist
+        // Check if the right child exists and is larger than the current largest.
         if (right < n) {
-            accessed.add(right); // Rechtes Kind wird gelesen
-            // Zugriff auf 'largest' Index wurde schon gezählt
-            steps++; // Zähle Vergleich
+            accessed.add(right); // Right child is accessed for comparison.
+            // Access to 'largest' index was already potentially added.
+            steps++; // Count comparison.
             if (arr.get(right) > arr.get(largest)) {
-                largest = right;
+                largest = right; // Update largest if right child is larger.
             }
         }
 
-        // Sende Zustand nach den Vergleichen
+        // Report the state after comparisons, showing accessed nodes.
         stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessed), new HashSet<>(changed)));
 
 
-        // Wenn größtes nicht die Wurzel ist
+        // If the largest element is not the root 'i', swap them.
         if (largest != i) {
-            accessed.add(largest); // 'largest' wird für get benötigt
-            accessed.add(i);       // 'i' wird für get benötigt
-            // Tausche Wurzel mit größtem Kind
+            accessed.add(largest); // 'largest' index needed for get/set.
+            // 'i' is already in 'accessed'.
+            // Perform the swap.
             int swap = arr.get(i);
             arr.set(i, arr.get(largest));
             arr.set(largest, swap);
-            changed.add(i);
+            changed.add(i); // Mark indices as changed.
             changed.add(largest);
-            steps++; // Zähle Swap
+            steps++; // Count the swap.
 
-            // Sende Zustand nach dem Swap
+            // Report the state after the swap.
             stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, changed));
 
-            // Rekursiv Heap-Eigenschaft für betroffenen Teilbaum wiederherstellen
+            // Recursively call heapAdjust on the affected subtree (rooted at the original 'largest' index)
+            // to ensure the max-heap property is maintained downwards.
             heapAdjust(arr, largest, n, stepCallback);
         }
-        // Sende Zustand auch wenn kein Swap stattfand, um den Abschluss des Adjusts zu zeigen
-        else if (changed.isEmpty()) {
+        // If no swap occurred, report the state to show the adjustment check finished.
+        else if (changed.isEmpty()) { // Only send if no swap happened in this call
             stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, changed));
         }
     }

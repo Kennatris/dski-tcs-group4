@@ -1,134 +1,254 @@
+/* General body styling */
 body {
-    font-family: system-ui, Arial, sans-serif;
-    margin: 2rem;
+    font-family: system-ui, Arial, sans-serif; /* Modern system fonts with fallback */
+    margin: 2rem; /* Add some space around the content */
+    line-height: 1.5; /* Improve readability */
 }
 
+/* Main heading styling */
 h1 {
     text-align: center;
     margin-bottom: 2rem;
+    color: #333; /* Darker heading color */
 }
 
+/* Layout grid for algorithm selection and visualization */
 .grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
+    grid-template-columns: 1fr 1fr; /* Two equal columns */
+    gap: 2rem; /* Space between columns */
+    margin-bottom: 1.5rem; /* Space below the grid */
 }
 
+/* Label styling */
 label {
-    display: block;
-    margin-top: 1rem;
-    font-weight: 600;
+    display: block; /* Ensure labels are on their own line */
+    margin-top: 1rem; /* Space above labels */
+    margin-bottom: 0.3rem; /* Smaller space below labels */
+    font-weight: 600; /* Make labels slightly bolder */
+    color: #555; /* Slightly lighter label color */
 }
 
+/* Styling for select dropdowns and text inputs */
 select,
-input[type="text"] {
-    width: 100%;
+input[type="text"],
+input[type="number"] { /* Added number input styling */
+    width: 100%; /* Make inputs fill their container */
     padding: .5rem;
     font-size: 1rem;
+    border: 1px solid #ccc; /* Standard border */
+    border-radius: 4px; /* Slightly rounded corners */
+    box-sizing: border-box; /* Include padding and border in width */
 }
 
+/* Button styling */
 button {
     margin-top: 1rem;
-    padding: .6rem 1rem;
+    padding: .6rem 1.2rem; /* Slightly more horizontal padding */
     font-size: 1rem;
     cursor: pointer;
+    background-color: #007bff; /* Bootstrap primary blue */
+    color: white;
+    border: none; /* Remove default border */
+    border-radius: 4px;
+    transition: background-color 0.2s ease; /* Smooth hover effect */
 }
 
+/* Button hover effect */
+button:hover:not(:disabled) { /* Don't change color if disabled */
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+/* Button disabled state */
+button:disabled {
+    background-color: #cccccc; /* Grey out when disabled */
+    cursor: not-allowed;
+}
+
+
+/* Results table styling */
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: collapse; /* Remove space between borders */
     margin-top: 1.5rem;
 }
 
+/* Table header and data cell styling */
 th,
 td {
-    border: 1px solid #ddd;
-    padding: .5rem;
+    border: 1px solid #ddd; /* Light grey border */
+    padding: .6rem; /* Slightly more padding */
     text-align: left;
+    vertical-align: top; /* Align content to the top */
 }
 
+/* Table header specific styling */
 th {
-    background: #f5f5f5;
+    background-color: #f8f9fa; /* Very light grey background */
+    font-weight: 600; /* Bolder header text */
 }
 
+/* Hint text styling (e.g., below inputs) */
 .hint {
     color: #555;
     font-size: .9rem;
+    margin-top: 0.2rem; /* Small space above hint */
 }
 
+/* Iframe styling for visualizations */
 iframe {
     width: 100%;
-    height: 300px;
+    height: 300px; /* Fixed height */
     border: 1px solid #ccc;
-    margin-top: 1rem;
-    border-radius: 8px;
+    margin-top: 0.5rem; /* Space above iframe */
+    border-radius: 8px; /* Rounded corners */
+    box-sizing: border-box;
 }
 
+/* Utility class for centering text */
 .center {
     text-align: center;
 }
 
+/* Styling for loading/status messages */
 .loading {
-    color: #007bff;
+    color: #007bff; /* Blue color */
     font-style: italic;
+    margin-top: 0.5rem; /* Space above status */
 }
 
+/* Grid layout for options like element count and speed */
 .options-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    max-width: 800px;
-    margin: 1rem auto;
-    align-items: end;
+    grid-template-columns: 1fr 1fr; /* Two equal columns */
+    gap: 1rem; /* Space between options */
+    max-width: 600px; /* Limit width for better centering */
+    margin: 1rem auto; /* Center the grid */
+    align-items: end; /* Align items to the bottom */
 }
+/* Remove top margin for labels within the options grid */
 .options-grid label {
     margin-top: 0;
 }
 
+/* Specific styling for the cancel button state */
 #compareBtn.cancel-btn {
-    background-color: #dc3545;
+    background-color: #dc3545; /* Bootstrap danger red */
     color: white;
-    border-color: #dc3545;
+}
+#compareBtn.cancel-btn:hover:not(:disabled) {
+    background-color: #c82333; /* Darker red on hover */
 }
 
+
+/* Progress bar animation */
 @keyframes progress-bar-stripes {
     from { background-position: 1rem 0; }
     to { background-position: 0 0; }
 }
 
+/* Progress bar container styling */
 #progressBar {
-    width: 60%;
+    width: 60%; /* Width relative to its container */
+    max-width: 500px; /* Max width for larger screens */
     margin-top: 1rem;
     height: 12px;
     margin-left: auto;
     margin-right: auto;
-    appearance: none;
+    appearance: none; /* Remove default browser styling */
     border: 1px solid #ccc;
     border-radius: 5px;
-    overflow: hidden;
+    overflow: hidden; /* Ensure stripes stay within bounds */
+    display: none; /* Initially hidden */
 }
 
+/* Styling for the background of the progress bar (Webkit) */
 #progressBar::-webkit-progress-bar {
-    background-color: #f5f5f5;
+    background-color: #f5f5f5; /* Light grey background */
     border-radius: 5px;
 }
 
+/* Styling for the value part of the progress bar (Webkit) */
 #progressBar::-webkit-progress-value {
-    background-color: #007bff;
+    background-color: #007bff; /* Blue progress */
+    /* Striped pattern */
     background-image: linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%,
     transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%,
     transparent 75%, transparent);
     background-size: 1rem 1rem;
-    animation: progress-bar-stripes 1s linear infinite;
-    transition: width 0.1s ease;
+    animation: progress-bar-stripes 1s linear infinite; /* Animate stripes */
+    transition: width 0.1s ease; /* Smooth width changes (e.g., when reaching 100%) */
 }
 
+/* Styling for the value part of the progress bar (Mozilla) */
 #progressBar::-moz-progress-bar {
-    background-color: #007bff;
+    background-color: #007bff; /* Blue progress */
+    /* Striped pattern */
     background-image: linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%,
     transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%,
     transparent 75%, transparent);
     background-size: 1rem 1rem;
-    animation: progress-bar-stripes 1s linear infinite;
-    transition: width 0.1s ease;
+    animation: progress-bar-stripes 1s linear infinite; /* Animate stripes */
+    transition: width 0.1s ease; /* Smooth width changes */
+    border-radius: 5px; /* Need radius here for Firefox */
+}
+
+/* --- Styles extracted from test.html --- */
+
+/* Container for search input and results dropdown */
+.search-container {
+    position: relative; /* Needed for absolute positioning of results */
+    margin-bottom: 1rem; /* Space below the search container */
+}
+
+/* Styling for the search results dropdown */
+.search-results {
+    border: 1px solid #ccc;
+    max-height: 200px; /* Limit height and enable scrolling */
+    overflow-y: auto;
+    position: absolute; /* Position below the input field */
+    background-color: white;
+    z-index: 1000; /* Ensure it appears above other elements */
+    width: calc(100% - 2px); /* Match width of input (adjusting for border) */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Subtle shadow */
+    margin-top: 2px; /* Small gap below input */
+    box-sizing: border-box; /* Include border in width */
+    border-radius: 0 0 4px 4px; /* Round bottom corners */
+}
+
+/* Styling for individual items in the search results */
+.search-result-item {
+    padding: 8px 12px;
+    cursor: pointer; /* Indicate it's clickable */
+    display: flex; /* Use flexbox for layout */
+    justify-content: space-between; /* Space out content */
+    align-items: center; /* Vertically align items */
+    border-bottom: 1px solid #eee; /* Separator line */
+}
+/* Remove border from last item */
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+
+/* Hover effect for search result items */
+.search-result-item:hover {
+    background-color: #f0f0f0; /* Light grey background on hover */
+}
+
+/* Ensure the text span takes up available space */
+.search-result-item span {
+    flex-grow: 1; /* Allow span to grow */
+    margin-right: 10px; /* Space before potential buttons/icons */
+}
+
+/* Styling for highlighted text within search results */
+.search-result-item b {
+    font-weight: 600; /* Standard bold */
+    color: #0056b3; /* Darker blue for matches */
+}
+
+/* Initially hide result table and visualization iframes */
+#resultTable, #frameA, #frameB {
+    display: none; /* Hidden by default, shown via JavaScript */
 }

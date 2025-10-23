@@ -10,97 +10,128 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Verwaltet und führt Sortieralgorithmen aus.
+ * Service class responsible for managing and executing different sorting algorithms.
+ * It provides methods to compare algorithms, retrieve available algorithms,
+ * and get specific algorithm implementations or their default datasets.
  */
 @Service
 public class SortingService {
 
+    // A map storing available sorting algorithm implementations, keyed by their lowercase names.
     private final Map<String, SortingAlgorithm> algorithms = new HashMap<>();
 
     /**
-     * Initialisiert den Service mit allen verfügbaren Implementierungen von SortingAlgorithm.
-     * @param algorithmImpls Eine Liste von Spring-Beans, die SortingAlgorithm implementieren.
+     * Constructs the SortingService and populates the algorithms map.
+     * Spring automatically injects all beans that implement the SortingAlgorithm interface.
+     * @param algorithmImplementations A list of beans implementing SortingAlgorithm.
      */
-    public SortingService(List<SortingAlgorithm> algorithmImpls) {
-        for (SortingAlgorithm algo : algorithmImpls) {
+    public SortingService(List<SortingAlgorithm> algorithmImplementations) {
+        // Populate the map with discovered algorithm implementations.
+        for (SortingAlgorithm algo : algorithmImplementations) {
+            // Use lowercase name as the key for case-insensitive lookup.
             algorithms.put(algo.getName().toLowerCase(), algo);
         }
     }
 
     /**
-     * Führt einen Vergleich für die angeforderten Algorithmen mit den gegebenen Daten durch.
-     * @param request Die Vergleichsanfrage.
-     * @return Eine Liste von SortResult-Objekten.
+     * Compares the performance of the requested sorting algorithms using the provided input data.
+     * @param request The CompareRequest containing the list of algorithm names and the input list.
+     * @return A list of SortResult objects, each containing the performance metrics and results for one algorithm.
+     * Returns an empty list if the request or its contents are invalid.
      */
     public List<SortResult> compare(CompareRequest request) {
         List<SortResult> results = new ArrayList<>();
+        // Basic validation of the request object.
         if (request == null || request.getAlgorithms() == null || request.getInput() == null) {
-            return results;
+            return results; // Return empty list if request is invalid
         }
 
-        for (String algoName : request.getAlgorithms()) {
-            if (algoName == null) continue;
-            SortingAlgorithm algo = algorithms.get(algoName.toLowerCase());
+        // Iterate through the requested algorithm names.
+        for (String algorithmName : request.getAlgorithms()) {
+            if (algorithmName == null) continue; // Skip null names
+
+            // Retrieve the algorithm implementation by its lowercase name.
+            SortingAlgorithm algo = algorithms.get(algorithmName.toLowerCase());
+
+            // If the algorithm implementation exists:
             if (algo != null) {
-                List<Integer> toSort = new ArrayList<>(request.getInput());
-                List<Integer> unsorted = request.getInput();
+                // Create a mutable copy of the input data for sorting.
+                List<Integer> listToSort = new ArrayList<>(request.getInput());
+                // Keep a reference to the original input for the result DTO.
+                List<Integer> originalUnsorted = request.getInput();
+
+                // Record start time, execute sort, record end time.
                 long startTime = System.currentTimeMillis();
-                List<Integer> sorted = algo.sort(toSort);
+                List<Integer> sortedList = algo.sort(listToSort); // Assumes sort works on the copy
                 long endTime = System.currentTimeMillis();
                 long durationMillis = endTime - startTime;
 
+                // Get the number of steps performed by the algorithm.
                 long steps = algo.getSteps();
+
+                // Create a SortResult DTO with the collected information.
+                // Include excerpts of unsorted and sorted lists (e.g., first 5 elements).
                 SortResult result = new SortResult(
-                        algo.getName(),
+                        algo.getName(), // Use the algorithm's canonical name
                         durationMillis,
                         steps,
-                        unsorted.stream().limit(5).collect(Collectors.toList()),
-                        sorted.stream().limit(5).collect(Collectors.toList()),
+                        // Get first 5 elements or fewer if list is smaller
+                        originalUnsorted.stream().limit(5).collect(Collectors.toList()),
+                        sortedList.stream().limit(5).collect(Collectors.toList()),
                         algo.getWorstCase(),
                         algo.getAverageCase(),
                         algo.getBestCase()
                 );
+                // Add the result to the list.
                 results.add(result);
             }
+            // If algo is null (not found), it's simply skipped.
         }
+        // Return the list of results.
         return results;
     }
 
     /**
-     * Ruft Metadaten aller verfügbaren Algorithmen ab.
-     * @return Eine sortierte Liste von AlgorithmInfo-Objekten.
+     * Retrieves metadata (name, complexities) for all registered sorting algorithms.
+     * @return A sorted list of AlgorithmInfo objects.
      */
     public List<AlgorithmInfo> getAvailableAlgorithms() {
-        return algorithms.values().stream()
-                .map(algo -> new AlgorithmInfo(
+        return algorithms.values().stream() // Stream over the algorithm implementations
+                .map(algo -> new AlgorithmInfo( // Map each implementation to an AlgorithmInfo DTO
                         algo.getName(),
                         algo.getWorstCase(),
                         algo.getAverageCase(),
                         algo.getBestCase()
                 ))
+                // Sort the results alphabetically by algorithm name.
                 .sorted(Comparator.comparing(AlgorithmInfo::getName))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()); // Collect into a list
     }
 
     /**
-     * Ruft eine Algorithmus-Implementierung anhand ihres Namens ab.
-     * @param name Der Name des Algorithmus (Groß-/Kleinschreibung wird ignoriert).
-     * @return Die SortingAlgorithm-Instanz oder null.
+     * Retrieves a specific sorting algorithm implementation by its name.
+     * The lookup is case-insensitive.
+     * @param name The name of the desired algorithm.
+     * @return The SortingAlgorithm implementation, or null if not found.
      */
     public SortingAlgorithm getAlgorithmByName(String name) {
         if (name == null) return null;
+        // Use lowercase name for lookup in the map.
         return algorithms.get(name.toLowerCase());
     }
 
     /**
-     * Ruft den Standard-Datensatz für einen Algorithmus anhand seines Namens ab.
-     * @param name Der Name des Algorithmus (Groß-/Kleinschreibung wird ignoriert).
-     * @return Eine Liste von Integern oder null.
+     * Retrieves the default sample dataset associated with a specific algorithm.
+     * The lookup is case-insensitive.
+     * @param name The name of the algorithm.
+     * @return The default list of integers for the algorithm, or null if the algorithm is not found.
      */
     public List<Integer> getDatasetByName(String name) {
         if (name == null) return null;
+        // Find the algorithm implementation.
         SortingAlgorithm algo = algorithms.get(name.toLowerCase());
         if (algo == null) return null;
+        // Return the default data provided by the algorithm.
         return algo.getData();
     }
 }

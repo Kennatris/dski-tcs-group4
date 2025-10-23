@@ -1,7 +1,8 @@
 package sorting.algorithms.project.dto;
 
 /**
- * Enthält Metadaten über einen Sortieralgorithmus.
+ * Data Transfer Object (DTO) containing metadata about a sorting algorithm.
+ * Used to provide clients with information like name and time complexities.
  */
 public class AlgorithmInfo {
     private String name;
@@ -10,11 +11,11 @@ public class AlgorithmInfo {
     private String bestCase;
 
     /**
-     * Erstellt eine neue Informationsinstanz für einen Algorithmus.
-     * @param name Der Anzeigename des Algorithmus.
-     * @param worstCase Die Komplexität im Worst Case (z.B. "O(n²)")
-     * @param averageCase Die Komplexität im Average Case (z.B. "O(n log n)")
-     * @param bestCase Die Komplexität im Best Case (z.B. "O(n)")
+     * Constructs a new AlgorithmInfo instance.
+     * @param name The display name of the algorithm (e.g., "BubbleSort").
+     * @param worstCase The time complexity in the worst-case scenario (e.g., "O(n²)").
+     * @param averageCase The time complexity in the average-case scenario (e.g., "O(n log n)").
+     * @param bestCase The time complexity in the best-case scenario (e.g., "O(n)").
      */
     public AlgorithmInfo(String name, String worstCase, String averageCase, String bestCase) {
         this.name = name;
@@ -23,20 +24,31 @@ public class AlgorithmInfo {
         this.bestCase = bestCase;
     }
 
+    // --- Getters ---
+
     /**
-     * @return Der Anzeigename des Algorithmus.
+     * Gets the display name of the algorithm.
+     * @return The algorithm name.
      */
     public String getName() { return name; }
+
     /**
-     * @return Die Komplexität im Worst Case.
+     * Gets the worst-case time complexity.
+     * @return The worst-case complexity string.
      */
     public String getWorstCase() { return worstCase; }
+
     /**
-     * @return Die Komplexität im Average Case.
+     * Gets the average-case time complexity.
+     * @return The average-case complexity string.
      */
     public String getAverageCase() { return averageCase; }
+
     /**
-     * @return Die Komplexität im Best Case.
+     * Gets the best-case time complexity.
+     * @return The best-case complexity string.
      */
     public String getBestCase() { return bestCase; }
+
+    // No setters needed as this DTO is typically created by the service and sent to the client.
 }

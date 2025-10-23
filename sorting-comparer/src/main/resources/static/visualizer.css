@@ -1,20 +1,35 @@
+/* Ensure body takes full viewport height and uses flexbox for layout */
 body {
     display: flex;
-    flex-direction: column;
-    height: 100vh;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
+    flex-direction: column; /* Stack canvas and status vertically */
+    height: 100vh; /* Full viewport height */
+    margin: 0; /* Remove default body margin */
+    padding: 0; /* Remove default body padding */
+    overflow: hidden; /* Prevent scrollbars if content slightly overflows */
+    background-color: #f8f9fa; /* Light background for the page */
 }
 
+/* Status message styling */
 #status {
     text-align: center;
-    margin-top: 5px;
-    font-size: 0.9em;
-    color: #555;
+    margin: 5px 0; /* Small top/bottom margin */
+    padding: 0 10px; /* Padding for text */
+    font-size: 0.9em; /* Slightly smaller font */
+    color: #555; /* Grey text color */
+    flex-shrink: 0; /* Prevent status from shrinking */
 }
 
+/* Canvas styling */
 canvas {
+    /* Allow canvas to grow and shrink, taking available space */
+    flex-grow: 1;
+    /* Ensure canvas doesn't exceed parent height (important for flexbox) */
     max-height: 100%;
+    /* Include padding/border in size calculation */
     box-sizing: border-box;
+    /* Optional: Add a subtle border */
+    border: 1px solid #e0e0e0;
+    /* Optional: Add slight margin if needed */
+    /* margin: 5px; */
+    background-color: #ffffff; /* White background for the drawing area */
 }

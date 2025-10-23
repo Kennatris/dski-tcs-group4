@@ -7,15 +7,23 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import sorting.algorithms.project.dto.SortStep; // Import SortStep
+import sorting.algorithms.project.dto.SortStep;
 
+/**
+ * Implements the Bubble Sort algorithm.
+ * It repeatedly steps through the list, compares adjacent elements and swaps them if they are in the wrong order.
+ * The pass through the list is repeated until the list is sorted.
+ */
 @Component
 public class BubbleSort implements SortingAlgorithm {
+    // Counter for the number of steps (comparisons + swaps).
     long steps;
+    // Stores the original dataset passed to the sort method.
     List<Integer> dataSet;
 
     /**
-     * @return Der Name des Algorithmus: "BubbleSort".
+     * Returns the name of the sorting algorithm.
+     * @return The string "BubbleSort".
      */
     @Override
     public String getName() {
@@ -23,116 +31,137 @@ public class BubbleSort implements SortingAlgorithm {
     }
 
     /**
-     * @return Die Zeitkomplexität im Worst Case: O(n²).
+     * Returns the worst-case time complexity of Bubble Sort.
+     * Occurs when the list is in reverse order.
+     * @return The string "O(n²)".
      */
     @Override
     public String getWorstCase() { return "O(n²)"; }
 
     /**
-     * @return Die Zeitkomplexität im Average Case: O(n²).
+     * Returns the average-case time complexity of Bubble Sort.
+     * @return The string "O(n²)".
      */
     @Override
     public String getAverageCase() { return "O(n²)"; }
 
     /**
-     * @return Die Zeitkomplexität im Best Case: O(n).
+     * Returns the best-case time complexity of Bubble Sort.
+     * Occurs when the list is already sorted.
+     * @return The string "O(n)".
      */
     @Override
     public String getBestCase() { return "O(n)"; }
 
     /**
-     * @return Die Anzahl der Schritte (Vergleiche + Swaps) des letzten Sortiervorgangs.
+     * Returns the total number of steps (comparisons + swaps) performed during the last sort operation.
+     * @return The number of steps.
      */
     @Override
     public long getSteps() { return steps; }
 
     /**
-     * @return Der ursprüngliche Datensatz, der zuletzt sortiert wurde.
+     * Returns the original dataset that was provided to the sorting algorithm.
+     * Ensures that a non-null list is returned.
+     * @return The original list of integers.
      */
     @Override
     public List<Integer> getData() {
-        // Sicherstellen, dass dataSet nicht null ist
+        // Return the stored dataset, or call the default method if it's null.
         return dataSet != null ? dataSet : SortingAlgorithm.super.getData();
     }
 
     /**
-     * Sortiert eine Kopie der Eingabeliste mithilfe von BubbleSort.
-     * @param input Die zu sortierende Liste.
-     * @return Eine neue, sortierte Liste.
+     * Sorts a copy of the input list using Bubble Sort.
+     * The original list remains unchanged.
+     * @param input The list of integers to sort.
+     * @return A new list containing the sorted elements.
      */
     @Override
     public List<Integer> sort(List<Integer> input) {
+        // Create a mutable copy.
         List<Integer> copy = new ArrayList<>(input);
-        dataSet = new ArrayList<>(copy); // Original für getData speichern
-        steps = 0; // Steps für diesen Lauf zurücksetzen
-        // Ruft die Callback-Version mit einem leeren Consumer auf
+        // Store the original data for getData().
+        dataSet = new ArrayList<>(copy);
+        // Reset step count for this run.
+        steps = 0;
+        // Call the callback version with a no-op consumer.
         bubbleSort(copy, (SortStep step) -> {});
+        // Return the sorted copy.
         return copy;
     }
 
     /**
-     * Sortiert die Eingabeliste "in-place" mithilfe von BubbleSort und sendet
-     * jeden Schritt (Vergleich oder Swap) an den Callback.
-     * @param input Die zu sortierende Liste (wird modifiziert).
-     * @param stepCallback Der Consumer, der jeden SortStep empfängt.
+     * Sorts the input list in-place using Bubble Sort and reports each step (comparison or swap).
+     * @param input The list to be sorted (will be modified).
+     * @param stepCallback A consumer function to report each {@link SortStep} for visualization.
      */
     @Override
     public void sortWithCallback(List<Integer> input, Consumer<SortStep> stepCallback) {
-        dataSet = new ArrayList<>(input); // Original für getData speichern
-        steps = 0; // Steps für diesen Lauf zurücksetzen
-        // Sende initialen Zustand
+        // Store the original data.
+        dataSet = new ArrayList<>(input);
+        // Reset step count.
+        steps = 0;
+        // Send the initial state of the array.
         stepCallback.accept(new SortStep(new ArrayList<>(input), Collections.emptySet(), Collections.emptySet()));
-        bubbleSort(input, stepCallback); // Führt die eigentliche Sortierung durch
-        // Sende finalen Zustand
+        // Perform the actual sorting logic.
+        bubbleSort(input, stepCallback);
+        // Send the final sorted state.
         stepCallback.accept(new SortStep(new ArrayList<>(input), Collections.emptySet(), Collections.emptySet()));
     }
 
     /**
-     * Führt die BubbleSort-Logik "in-place" aus und meldet jeden Vergleichs-/Swap-Schritt
-     * mit detaillierten Index-Informationen an den Callback.
-     * @param arr Die zu sortierende Liste (wird modifiziert).
-     * @param stepCallback Der Consumer, der jeden SortStep empfängt.
+     * Performs the Bubble Sort logic in-place, reporting each comparison and swap.
+     * Optimizes by reducing the range in each pass, as the largest elements "bubble up" to the end.
+     * @param arr The list to be sorted (will be modified).
+     * @param stepCallback The consumer function receiving {@link SortStep} updates.
      */
     public void bubbleSort(List<Integer> arr, Consumer<SortStep> stepCallback) {
-        // Steps werden in sortWithCallback oder sort initialisiert
+        // Get the size of the list.
         int n = arr.size();
-        if (n <= 1) return; // Bereits sortiert oder leer
+        // If the list has 0 or 1 elements, it's already sorted.
+        if (n <= 1) return;
 
         boolean swapped;
         do {
+            // Assume no swaps will occur in this pass.
             swapped = false;
-            // Der Bereich [n, arr.size()-1] ist bereits sortiert
+            // Iterate through the unsorted portion of the list.
+            // The range decreases by 1 in each pass as the largest element moves to the end.
             for (int i = 1; i < n; i++) {
-                // --- Tracking der Indizes ---
+                // --- Track accessed and changed indices for visualization ---
                 Set<Integer> accessed = new HashSet<>();
                 Set<Integer> changed = new HashSet<>();
-                accessed.add(i - 1); // Index für arr.get(i-1)
-                accessed.add(i);     // Index für arr.get(i)
-                steps++;             // Zähle den Vergleich
+                accessed.add(i - 1); // Index accessed for arr.get(i-1)
+                accessed.add(i);     // Index accessed for arr.get(i)
+                steps++;             // Count the comparison.
 
-                // Sende Zustand *vor* potenziellem Swap
+                // Report the state *before* a potential swap.
                 stepCallback.accept(new SortStep(new ArrayList<>(arr), new HashSet<>(accessed), new HashSet<>(changed)));
 
 
+                // Compare adjacent elements.
                 if (arr.get(i - 1) > arr.get(i)) {
-                    // Tausche Elemente
+                    // Perform the swap.
                     int t = arr.get(i - 1);
                     arr.set(i - 1, arr.get(i));
                     arr.set(i, t);
+                    // Mark that a swap occurred in this pass.
                     swapped = true;
-                    // Bei Swap sind beide Indizes geändert
+                    // Mark the swapped indices as changed.
                     changed.add(i - 1);
                     changed.add(i);
-                    steps++; // Zähle Swap als zusätzlichen Schritt (optional)
+                    steps++; // Optionally count the swap as an additional step.
 
-                    // Sende Zustand *nach* dem Swap
+                    // Report the state *after* the swap.
                     stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, changed));
                 }
-                // --- Sende SortStep nach dem Vergleich (auch wenn nicht getauscht wurde) ---
-                // Entfernt, da schon vor/nach Swap gesendet wird
+                // --- Reporting state after comparison removed as it's covered by before/after swap reports ---
                 // stepCallback.accept(new SortStep(new ArrayList<>(arr), accessed, changed));
             }
-            n--; // Reduziere den zu betrachtenden Bereich, da das größte Element am Ende ist
-        } while (swapped); // Wiederhole, wenn im letzten Durchlauf getauscht wurde
+            // Reduce the size of the unsorted portion for the next pass.
+            n--;
+            // Repeat the pass if any swaps occurred.
+        } while (swapped);
     }
 }
