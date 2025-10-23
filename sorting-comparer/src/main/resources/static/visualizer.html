@@ -4,18 +4,9 @@
     <meta charset="UTF-8">
     <title>Sortier-Visualisierung</title>
     <link rel="stylesheet" href="visualizer.css" />
-    <style>
-        /* Optional: Style für die Statuszeile */
-        #status {
-            text-align: center;
-            margin-top: 5px;
-            font-size: 0.9em;
-            color: #555;
-        }
-    </style>
 </head>
 <body>
-<canvas id="canvas" width="600" height="300"></canvas>
+<canvas id="canvas" width="600" height="298"></canvas>
 <p id="status">Status: Connecting...</p>
 
 <script>
@@ -46,16 +37,10 @@
     let startTime = null;
     let timerId = null;
     let lastReceivedData = null;
-    // --- START DER ÄNDERUNG ---
-    // Flag, um zu signalisieren, dass die Visualisierung beendet ist
-    let isFinished = false;
-    // --- ENDE DER ÄNDERUNG ---
+    let isFinished = false; // Flag für Beendigung
 
     function updateElapsedTime() {
-        // --- START DER ÄNDERUNG ---
-        // Timer nur aktualisieren, wenn nicht fertig
         if (!startTime || isFinished) return;
-        // --- ENDE DER ÄNDERUNG ---
         const now = Date.now();
         const elapsedSeconds = ((now - startTime) / 1000).toFixed(1);
         statusElement.textContent = `Status: Running... Elapsed: ${elapsedSeconds}s`;
@@ -71,22 +56,15 @@
         statusElement.textContent = 'Status: Running... Elapsed: 0.0s';
         timerId = setInterval(updateElapsedTime, 100);
         lastReceivedData = null;
-        // --- START DER ÄNDERUNG ---
         isFinished = false; // Zurücksetzen bei neuer Verbindung
-        // --- ENDE DER ÄNDERUNG ---
     };
 
     // onmessage Handler
     evtSource.onmessage = function(e) {
-        // --- START DER ÄNDERUNG ---
-        // Nichts mehr tun, wenn die Verbindung als beendet markiert wurde
         if (isFinished) {
-            console.log("Skipping message, already finished."); // Optional für Debugging
+            // console.log("Skipping message, already finished.");
             return;
         }
-        // --- ENDE DER ÄNDERUNG ---
-
-        // Nur neu zeichnen, wenn sich die Daten geändert haben
         if (e.data === lastReceivedData) {
             return;
         }
@@ -99,22 +77,16 @@
             console.error("Failed to parse SSE data:", error, e.data);
             statusElement.textContent = 'Status: Error parsing data!';
             if (timerId) clearInterval(timerId);
-            // --- START DER ÄNDERUNG ---
-            isFinished = true; // Auch bei Fehler als beendet markieren
-            // --- ENDE DER ÄNDERUNG ---
+            isFinished = true; // Bei Fehler als beendet markieren
             evtSource.close();
         }
     };
 
     // onerror Handler
     evtSource.onerror = function(event) {
-        // --- START DER ÄNDERUNG ---
-        // Sicherstellen, dass der finished-Flag gesetzt ist, bevor der Timer gestoppt wird
-        isFinished = true;
-        // --- ENDE DER ÄNDERUNG ---
+        isFinished = true; // Sicherstellen, dass Flag gesetzt ist
         if (timerId) clearInterval(timerId); // Timer immer stoppen
 
-        // Prüfen, ob der Server die Verbindung normal geschlossen hat
         if (evtSource.readyState === EventSource.CLOSED || event.eventPhase === EventSource.CLOSED) {
             if (startTime) {
                 const finalElapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -122,16 +94,13 @@
             } else {
                 statusElement.textContent = 'Status: Finished (connection closed)';
             }
-            // Optional: Den letzten empfangenen Zustand sicherheitshalber noch einmal zeichnen
+            // Letzten Zustand nochmal zeichnen
             if(lastReceivedData) { try { drawArray(JSON.parse(lastReceivedData)); } catch(e){ console.error("Error drawing final state:", e); } }
-
         } else {
-            // Echter Fehler (z.B. Netzwerkproblem, Server nicht erreichbar)
             statusElement.textContent = 'Status: Error or disconnected.';
             console.error("SSE Error:", event);
         }
 
-        // Explizit schließen, falls noch nicht geschehen
         if (evtSource.readyState !== EventSource.CLOSED) {
             evtSource.close();
         }
@@ -139,28 +108,26 @@
 
 
     function drawArray(arr) {
-        // --- START DER ÄNDERUNG ---
-        // Nichts zeichnen, wenn als beendet markiert
-        if (isFinished && statusElement.textContent.startsWith('Status: Finished')) {
-            // Erlaube das letzte Zeichnen im onerror, aber keine weiteren danach
-            // console.log("Skipping draw, already finished."); // Optional
-            // return; // Diese Zeile ist optional, da onmessage bereits blockiert
-        }
-        // --- ENDE DER ÄNDERUNG ---
+        // Die Prüfung 'if (isFinished)' ist hier nicht unbedingt nötig, da 'onmessage' blockiert,
+        // schadet aber auch nicht als zusätzliche Sicherheit.
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const w = canvas.width / arr.length;
-        const maxHeight = canvas.height;
+        const maxHeight = canvas.height; // Nutzt die (leicht reduzierte) Canvas-Höhe
 
         let maxValue = 0;
         if (arr.length > 0) {
+            // Sicherere Methode für große Arrays
             maxValue = arr.reduce((max, val) => Math.max(max, val), arr[0]);
         }
+        // Verhindert Division durch Null, falls alle Werte 0 sind oder Array leer ist
         if (maxValue === 0) maxValue = 1;
 
         for (let i = 0; i < arr.length; i++) {
             ctx.fillStyle = 'steelblue';
-            const barHeight = (arr[i] / maxValue) * maxHeight * 0.95;
+            // Relative Skalierung (wie bereits vorhanden)
+            const barHeight = (arr[i] / maxValue) * maxHeight * 0.98; // Kleiner Faktor für Rand oben
+            // Zeichne von unten nach oben
             ctx.fillRect(i * w, canvas.height - barHeight, w - 2, barHeight);
         }
     }

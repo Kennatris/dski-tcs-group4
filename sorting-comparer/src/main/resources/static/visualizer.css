@@ -1,10 +1,22 @@
+/* Body-Styles für Flexbox-Layout und Margin-Entfernung */
 body {
-    margin: 0;
-    font-family: sans-serif;
+    display: flex; /* Aktiviert Flexbox */
+    flex-direction: column; /* Elemente untereinander anordnen */
+    height: 100vh; /* Body soll die volle Viewport-Höhe nutzen */
+    margin: 0; /* Standard-Body-Margin entfernen */
+    padding: 0; /* Standard-Body-Padding entfernen */
+    overflow: hidden; /* Verhindert Scrollbalken am Body selbst */
 }
 
+/* Optional: Style für die Statuszeile */
+#status {
+    text-align: center;
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: #555;
+}
+/* NEU: Sicherstellen, dass Canvas nicht überläuft */
 canvas {
-    display: block;
-    background: #f5f5f5;
-    margin: auto;
+    max-height: 100%; /* Verhindert Überlauf, falls CSS wichtiger ist als Attribut */
+    box-sizing: border-box; /* Padding/Border in Höhe einrechnen (falls vorhanden) */
 }
