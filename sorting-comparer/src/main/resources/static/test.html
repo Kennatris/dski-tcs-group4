@@ -36,7 +36,8 @@
     <thead>
     <tr>
         <th>Algorithmus</th>
-        <th>Laufzeit (Steps)</th>
+        <th>Laufzeit (ms)</th>
+        <th>Steps</th>
         <th>Unsortiertes Array</th>
         <th>Sortiertes Ergebnis</th>
         <th>Worst Case</th>
@@ -272,6 +273,7 @@
                 tr.innerHTML = `
             <td>${row.algorithm ?? '-'}</td>
             <td>${row.durationMillis ?? '-'}</td>
+            <td>${row.steps ?? '-'}</td>
             <td>${(row.unsorted || []).join(', ')}</td>
             <td>${(row.sorted || []).join(', ')}</td>
             <td>${row.worstCase ?? '-'}</td>

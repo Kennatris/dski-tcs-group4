@@ -12,10 +12,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.LinkedHashMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @RestController
@@ -46,10 +43,39 @@ public class CompareController {
     @GetMapping("/datasets")
     public Map<String, List<Integer>> getDatasets() {
         Map<String, List<Integer>> sets = new LinkedHashMap<>();
-        sets.put("unsorted", List.of(5, 2, 8, 0, 4, 1, 7, 3, 9, 6));
-        sets.put("halfSorted", List.of(0, 1, 2, 3, 9, 8, 7, 6, 5, 4));
-        sets.put("sorted", List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
-        sets.put("reverse", List.of(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
+
+        // Anzahl und Maximum als Variablen
+        final int ELEMENT_COUNT = 1000;
+        final int MAX_VALUE = ELEMENT_COUNT - 1;
+
+        // Liste 1: Aufsteigend (0 -> 9999)
+        List<Integer> ascending = new ArrayList<>();
+        for (int i = 0; i < ELEMENT_COUNT; i++) {
+            ascending.add(i);
+        }
+
+        // Liste 2: Absteigend (9999 -> 0)
+        List<Integer> descending = new ArrayList<>();
+        for (int i = MAX_VALUE; i >= 0; i--) {
+            descending.add(i);
+        }
+
+        // Liste 3: Halbsortiert (erste Hälfte sortiert, zweite Hälfte zufällig)
+        List<Integer> halfSorted = new ArrayList<>(ascending);
+        List<Integer> secondHalf = new ArrayList<>(halfSorted.subList(ELEMENT_COUNT / 2, ELEMENT_COUNT));
+        Collections.shuffle(secondHalf);
+        for (int i = 0; i < secondHalf.size(); i++) {
+            halfSorted.set(ELEMENT_COUNT / 2 + i, secondHalf.get(i));
+        }
+
+        // Liste 4: Vollständig unsortiert (komplett zufällig)
+        List<Integer> unsorted = new ArrayList<>(ascending);
+        Collections.shuffle(unsorted);
+
+        sets.put("unsorted", unsorted);
+        sets.put("halfSorted", halfSorted);
+        sets.put("sorted", ascending);
+        sets.put("reverse", descending);
         return sets;
     }
 
@@ -124,7 +150,7 @@ public class CompareController {
                             // Versuche zu senden; wenn der Emitter bereits geschlossen ist, wird IllegalStateException geworfen
                             emitter.send(step);
                             // kurze Pause für Visualisierung; falls InterruptedException -> beenden
-                            try { Thread.sleep(100); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                            try { Thread.sleep(1); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
                         } catch (IllegalStateException ise) {
                             // Emitter bereits abgeschlossen / client disconnected -> markiere inaktiv und hör auf zu senden
                             active.set(false);

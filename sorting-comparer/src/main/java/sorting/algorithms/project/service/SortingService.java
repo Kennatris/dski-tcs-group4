@@ -31,14 +31,18 @@ public class SortingService {
             if (algo != null) {
                 List<Integer> toSort = new ArrayList<>(request.getInput());
                 List<Integer> unsorted = request.getInput();
+                long startTime = System.currentTimeMillis();
                 List<Integer> sorted = algo.sort(toSort);
+                long endTime = System.currentTimeMillis();
+                long durationMillis = endTime - startTime;
 
                 long steps = algo.getSteps();
                 SortResult result = new SortResult(
                         algo.getName(),
+                        durationMillis,
                         steps,
-                        unsorted,
-                        sorted,
+                        unsorted.stream().limit(5).collect(Collectors.toList()),
+                        sorted.stream().limit(5).collect(Collectors.toList()),
                         algo.getWorstCase(),
                         algo.getAverageCase(),
                         algo.getBestCase()
