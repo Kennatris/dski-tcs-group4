@@ -4,54 +4,164 @@
     <meta charset="UTF-8">
     <title>Sortier-Visualisierung</title>
     <link rel="stylesheet" href="visualizer.css" />
+    <style>
+        /* Optional: Style für die Statuszeile */
+        #status {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #555;
+        }
+    </style>
 </head>
 <body>
 <canvas id="canvas" width="600" height="300"></canvas>
+<p id="status">Status: Connecting...</p>
 
 <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    const statusElement = document.getElementById('status');
 
-    // Algorithmus-Name und NEUE Parameter aus Query-Parametern lesen
+    // Parameter aus Query-Parametern lesen
     const params = new URLSearchParams(window.location.search);
     const algorithm = params.get('algo');
-    const dataset = params.get('dataset'); // NEU
-    const speed = params.get('speed');     // NEU
+    const dataset = params.get('dataset');
+    const speed = params.get('speed');
 
-    // NEU: URL für EventSource dynamisch bauen
+    // URL für EventSource dynamisch bauen
     let url = `/api/compare/visualizer/${algorithm}`;
-
-    // Füge Query-Parameter hinzu, falls sie existieren
     const queryParams = [];
     if (dataset) {
-        // Wichtig: 'dataset' muss URL-kodiert sein, da es Keys wie 'halfSorted' enthält
         queryParams.push(`dataset=${encodeURIComponent(dataset)}`);
     }
     if (speed) {
         queryParams.push(`speed=${speed}`);
     }
-
-    // Hänge die Query-Parameter an die URL an
     if (queryParams.length > 0) {
         url += `?${queryParams.join('&')}`;
     }
 
-    // SSE-Verbindung zum Backend (mit der NEUEN, dynamischen URL)
+    // Timer, Status Logik und Daten-Check
+    let startTime = null;
+    let timerId = null;
+    let lastReceivedData = null;
+    // --- START DER ÄNDERUNG ---
+    // Flag, um zu signalisieren, dass die Visualisierung beendet ist
+    let isFinished = false;
+    // --- ENDE DER ÄNDERUNG ---
+
+    function updateElapsedTime() {
+        // --- START DER ÄNDERUNG ---
+        // Timer nur aktualisieren, wenn nicht fertig
+        if (!startTime || isFinished) return;
+        // --- ENDE DER ÄNDERUNG ---
+        const now = Date.now();
+        const elapsedSeconds = ((now - startTime) / 1000).toFixed(1);
+        statusElement.textContent = `Status: Running... Elapsed: ${elapsedSeconds}s`;
+    }
+
+    // SSE-Verbindung zum Backend
+    statusElement.textContent = 'Status: Connecting...';
     const evtSource = new EventSource(url);
 
-    evtSource.onmessage = function(e) {
-        const arr = JSON.parse(e.data);
-        drawArray(arr);
+    // onopen Handler
+    evtSource.onopen = function() {
+        startTime = Date.now();
+        statusElement.textContent = 'Status: Running... Elapsed: 0.0s';
+        timerId = setInterval(updateElapsedTime, 100);
+        lastReceivedData = null;
+        // --- START DER ÄNDERUNG ---
+        isFinished = false; // Zurücksetzen bei neuer Verbindung
+        // --- ENDE DER ÄNDERUNG ---
     };
 
+    // onmessage Handler
+    evtSource.onmessage = function(e) {
+        // --- START DER ÄNDERUNG ---
+        // Nichts mehr tun, wenn die Verbindung als beendet markiert wurde
+        if (isFinished) {
+            console.log("Skipping message, already finished."); // Optional für Debugging
+            return;
+        }
+        // --- ENDE DER ÄNDERUNG ---
+
+        // Nur neu zeichnen, wenn sich die Daten geändert haben
+        if (e.data === lastReceivedData) {
+            return;
+        }
+        lastReceivedData = e.data;
+
+        try {
+            const arr = JSON.parse(e.data);
+            drawArray(arr);
+        } catch (error) {
+            console.error("Failed to parse SSE data:", error, e.data);
+            statusElement.textContent = 'Status: Error parsing data!';
+            if (timerId) clearInterval(timerId);
+            // --- START DER ÄNDERUNG ---
+            isFinished = true; // Auch bei Fehler als beendet markieren
+            // --- ENDE DER ÄNDERUNG ---
+            evtSource.close();
+        }
+    };
+
+    // onerror Handler
+    evtSource.onerror = function(event) {
+        // --- START DER ÄNDERUNG ---
+        // Sicherstellen, dass der finished-Flag gesetzt ist, bevor der Timer gestoppt wird
+        isFinished = true;
+        // --- ENDE DER ÄNDERUNG ---
+        if (timerId) clearInterval(timerId); // Timer immer stoppen
+
+        // Prüfen, ob der Server die Verbindung normal geschlossen hat
+        if (evtSource.readyState === EventSource.CLOSED || event.eventPhase === EventSource.CLOSED) {
+            if (startTime) {
+                const finalElapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+                statusElement.textContent = `Status: Finished in ${finalElapsedSeconds}s`;
+            } else {
+                statusElement.textContent = 'Status: Finished (connection closed)';
+            }
+            // Optional: Den letzten empfangenen Zustand sicherheitshalber noch einmal zeichnen
+            if(lastReceivedData) { try { drawArray(JSON.parse(lastReceivedData)); } catch(e){ console.error("Error drawing final state:", e); } }
+
+        } else {
+            // Echter Fehler (z.B. Netzwerkproblem, Server nicht erreichbar)
+            statusElement.textContent = 'Status: Error or disconnected.';
+            console.error("SSE Error:", event);
+        }
+
+        // Explizit schließen, falls noch nicht geschehen
+        if (evtSource.readyState !== EventSource.CLOSED) {
+            evtSource.close();
+        }
+    };
+
+
     function drawArray(arr) {
+        // --- START DER ÄNDERUNG ---
+        // Nichts zeichnen, wenn als beendet markiert
+        if (isFinished && statusElement.textContent.startsWith('Status: Finished')) {
+            // Erlaube das letzte Zeichnen im onerror, aber keine weiteren danach
+            // console.log("Skipping draw, already finished."); // Optional
+            // return; // Diese Zeile ist optional, da onmessage bereits blockiert
+        }
+        // --- ENDE DER ÄNDERUNG ---
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const w = canvas.width / arr.length;
+        const maxHeight = canvas.height;
+
+        let maxValue = 0;
+        if (arr.length > 0) {
+            maxValue = arr.reduce((max, val) => Math.max(max, val), arr[0]);
+        }
+        if (maxValue === 0) maxValue = 1;
 
         for (let i = 0; i < arr.length; i++) {
             ctx.fillStyle = 'steelblue';
-            // (Die Höhe der Balken wurde in der 'target' Version leicht angepasst, ich übernehme das)
-            ctx.fillRect(i * w, canvas.height - arr[i] * .4, w - 2, arr[i] * .4);
+            const barHeight = (arr[i] / maxValue) * maxHeight * 0.95;
+            ctx.fillRect(i * w, canvas.height - barHeight, w - 2, barHeight);
         }
     }
 </script>

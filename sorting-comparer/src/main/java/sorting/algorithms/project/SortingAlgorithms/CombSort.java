@@ -73,8 +73,10 @@ public class CombSort implements SortingAlgorithm {
                     arr.set(i, arr.get(i + gap));
                     arr.set(i + gap, temp);
                     swapped = true;
-                    stepCallback.accept(new ArrayList<>(arr));
+                    // KORREKTUR: Callback hier entfernt
                 }
+                // KORREKTUR: Callback nach außen verschoben, sendet bei jedem Vergleich
+                stepCallback.accept(new ArrayList<>(arr));
             }
         }
     }

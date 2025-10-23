@@ -68,7 +68,8 @@ public class BucketSort implements SortingAlgorithm {
         for (int num : arr) {
             bucket[num]++;
             steps++; // Jede Platzierung in den Bucket zählt als Schritt
-            stepCallback.accept(new ArrayList<>(arr));
+            // KORREKTUR: Callback entfernt (arr ändert sich hier nicht)
+            // stepCallback.accept(new ArrayList<>(arr));
         }
 
         // Build sorted array
@@ -77,7 +78,7 @@ public class BucketSort implements SortingAlgorithm {
             for (int j = 0; j < bucket[i]; j++) {
                 arr.add(i);
                 steps++; // Jede Übertragung in die sortierte Liste zählt als Schritt
-                stepCallback.accept(new ArrayList<>(arr));
+                stepCallback.accept(new ArrayList<>(arr)); // Diese Visualisierung ist korrekt
             }
         }
     }

@@ -70,13 +70,15 @@ public class GnomeSort implements SortingAlgorithm {
                 arr.set(index - 1, arr.get(index));
                 arr.set(index, tmp);
                 steps++; // Swap zählt auch als Schritt
-                stepCallback.accept(new ArrayList<>(arr));
+                // KORREKTUR: Callback hier entfernt
 
                 index--;
                 if (index == 0) {
                     index = 1;
                 }
             }
+            // KORREKTUR: Callback nach außen verschoben, sendet bei jeder Iteration
+            stepCallback.accept(new ArrayList<>(arr));
         }
     }
 }

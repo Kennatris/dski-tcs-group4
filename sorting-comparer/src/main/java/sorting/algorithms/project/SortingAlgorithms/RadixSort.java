@@ -85,7 +85,8 @@ public class RadixSort implements SortingAlgorithm {
             int index = (arr.get(i) / exp) % 10;
             count[index]++;
             steps++;
-            stepCallback.accept(new ArrayList<>(arr));
+            // KORREKTUR: Callback entfernt (arr ändert sich hier nicht)
+            // stepCallback.accept(new ArrayList<>(arr));
         }
 
         for (int i = 1; i < 10; i++) {
@@ -101,7 +102,7 @@ public class RadixSort implements SortingAlgorithm {
         for (int i = 0; i < n; i++) {
             arr.set(i, output[i]);
             steps++;
-            stepCallback.accept(new ArrayList<>(arr));
+            stepCallback.accept(new ArrayList<>(arr)); // Diese Visualisierung ist korrekt
         }
     }
 }

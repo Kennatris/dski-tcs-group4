@@ -73,7 +73,8 @@ public class CountingSort implements SortingAlgorithm {
         for (int num : arr) {
             count[num]++;
             steps++;
-            stepCallback.accept(new ArrayList<>(arr));
+            // KORREKTUR: Callback entfernt (arr ändert sich hier nicht)
+            // stepCallback.accept(new ArrayList<>(arr));
         }
 
         // Position info
@@ -88,14 +89,15 @@ public class CountingSort implements SortingAlgorithm {
             output[count[num] - 1] = num;
             count[num]--;
             steps++;
-            stepCallback.accept(new ArrayList<>(arr));
+            // KORREKTUR: Callback entfernt (arr ändert sich hier nicht)
+            // stepCallback.accept(new ArrayList<>(arr));
         }
 
         // Copy back
         for (int i = 0; i < n; i++) {
             arr.set(i, output[i]);
             steps++;
-            stepCallback.accept(new ArrayList<>(arr));
+            stepCallback.accept(new ArrayList<>(arr)); // Diese Visualisierung ist korrekt
         }
     }
 }

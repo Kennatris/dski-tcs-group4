@@ -56,26 +56,28 @@ public class StalinSort implements SortingAlgorithm {
         stalinSort(input, stepCallback);
     }
 
-    // 🔹 Interne StalinSort-Implementierung mit Callback
+    // 🔹 Interne StalinSort-Implementierung mit Callback (KORRIGIERT)
+    // Diese Version arbeitet "in-place", indem sie Elemente entfernt.
     private void stalinSort(List<Integer> arr, Consumer<List<Integer>> stepCallback) {
         if (arr.isEmpty()) return;
 
-        int last = arr.get(0);
-        List<Integer> result = new ArrayList<>();
-        stepCallback.accept(new ArrayList<>(result));
-        result.add(last);
+        // Sende den Startzustand
+        stepCallback.accept(new ArrayList<>(arr));
 
-        for (int i = 1; i < arr.size(); i++) {
-            steps++; // jeder Vergleich zählt
-            stepCallback.accept(new ArrayList<>(result));
-            if (arr.get(i) >= last) {
-                result.add(arr.get(i));
-                last = arr.get(i);
+        int i = 1;
+        while (i < arr.size()) {
+            steps++; // Jeder Vergleich zählt
+
+            // Wenn das aktuelle Element kleiner ist als das vorherige, "eliminiere" es
+            if (arr.get(i) < arr.get(i - 1)) {
+                arr.remove(i);
+                // Sende Snapshot nach der Entfernung
+                stepCallback.accept(new ArrayList<>(arr));
+                // 'i' wird nicht erhöht, da das nächste Element an die Position 'i' gerückt ist
+            } else {
+                // Korrekte Reihenfolge, gehe zum nächsten Element
+                i++;
             }
         }
-
-        // Ergebnis zurück in arr
-        arr.clear();
-        arr.addAll(result);
     }
 }

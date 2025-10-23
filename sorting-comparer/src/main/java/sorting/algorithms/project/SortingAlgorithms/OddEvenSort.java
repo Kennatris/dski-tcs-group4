@@ -71,8 +71,10 @@ public class OddEvenSort implements SortingAlgorithm {
                     arr.set(i, arr.get(i + 1));
                     arr.set(i + 1, temp);
                     sorted = false;
-                    stepCallback.accept(new ArrayList<>(arr));
+                    // KORREKTUR: Callback hier entfernt
                 }
+                // KORREKTUR: Callback nach außen verschoben
+                stepCallback.accept(new ArrayList<>(arr));
             }
 
             // Even indexed pass
@@ -83,8 +85,10 @@ public class OddEvenSort implements SortingAlgorithm {
                     arr.set(i, arr.get(i + 1));
                     arr.set(i + 1, temp);
                     sorted = false;
-                    stepCallback.accept(new ArrayList<>(arr));
+                    // KORREKTUR: Callback hier entfernt
                 }
+                // KORREKTUR: Callback nach außen verschoben
+                stepCallback.accept(new ArrayList<>(arr));
             }
         }
     }

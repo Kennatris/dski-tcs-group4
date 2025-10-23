@@ -67,9 +67,14 @@ public class PigeonholeSort implements SortingAlgorithm {
         // Finde min und max
         for (int i = 0; i < n; i++) {
             steps++;
+            // --- START DER KORREKTUR ---
+            // Verwende arr.get(i) statt 'num'
             if (arr.get(i) > max) max = arr.get(i);
             if (arr.get(i) < min) min = arr.get(i);
-            stepCallback.accept(new ArrayList<>(arr));
+            // --- ENDE DER KORREKTUR ---
+
+            // Callback entfernt (arr ändert sich hier nicht)
+            // stepCallback.accept(new ArrayList<>(arr));
         }
 
         int range = max - min + 1;
@@ -79,7 +84,8 @@ public class PigeonholeSort implements SortingAlgorithm {
         for (int i = 0; i < n; i++) {
             holes[arr.get(i) - min]++;
             steps++;
-            stepCallback.accept(new ArrayList<>(arr));
+            // Callback entfernt (arr ändert sich hier nicht)
+            // stepCallback.accept(new ArrayList<>(arr));
         }
 
         // Rekonstruiere sortiertes Array
@@ -89,7 +95,7 @@ public class PigeonholeSort implements SortingAlgorithm {
                 arr.set(index++, j + min);
                 holes[j]--;
                 steps++;
-                stepCallback.accept(new ArrayList<>(arr));
+                stepCallback.accept(new ArrayList<>(arr)); // Diese Visualisierung ist korrekt
             }
         }
     }
