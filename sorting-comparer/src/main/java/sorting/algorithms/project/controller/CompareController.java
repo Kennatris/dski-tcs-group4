@@ -2,6 +2,7 @@ package sorting.algorithms.project.controller;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import sorting.algorithms.project.dto.AlgorithmInfo; // NEUER IMPORT
 import sorting.algorithms.project.dto.CompareRequest;
 import sorting.algorithms.project.dto.SortResult;
 import sorting.algorithms.project.service.SortingService;
@@ -34,21 +35,22 @@ public class CompareController {
     }
 
     // 🔹 Verfügbare Algorithmen abrufen
+    // --- START DER ÄNDERUNG ---
+    // (Rückgabetyp von List<String> zu List<AlgorithmInfo> geändert)
     @GetMapping("/algorithms")
-    public List<String> availableAlgorithms() {
+    public List<AlgorithmInfo> availableAlgorithms() {
         return sortingService.getAvailableAlgorithms();
     }
+    // --- ENDE DER ÄNDERUNG ---
+
 
     // 🔹 Datensätze abrufen
     @GetMapping("/datasets")
     public Map<String, List<Integer>> getDatasets(
-            // NEU: Request-Parameter für die Anzahl, Standard 1000
             @RequestParam(required = false, defaultValue = "1000") int count) {
 
         Map<String, List<Integer>> sets = new LinkedHashMap<>();
 
-        // Anzahl und Maximum als Variablen
-        // NEU: Wert aus 'count' verwenden und auf Min/Max (100 / 1.000.000) beschränken
         final int ELEMENT_COUNT = Math.max(100, Math.min(count, 1000000));
         final int MAX_VALUE = ELEMENT_COUNT - 1;
 
@@ -83,32 +85,18 @@ public class CompareController {
         return sets;
     }
 
-    /**
-     * SSE-Endpoint für Visualisierung.
-     * - dataset: einer von "unsorted","halfSorted","sorted","reverse" (optional)
-     * - input: optional JSON-Array (zB "%5B5%2C2%2C3%5D" = "[5,2,3]"), hat Vorrang vor dataset
-     * - (NEU) speed: optionale Pausenzeit in ms (default 1)
-     *
-     * Robustness:
-     * - Verwende AtomicBoolean active, um nach onCompletion/onTimeout/onError keine weiteren sends zu versuchen.
-     * - Fang IllegalStateException/IOException beim emitter.send() ab und beende sauber.
-     * - Setze Emitter-Timeout auf 0 (kein automatischer Timeout) - passe falls nötig.
-     */
+    // (Rest der Klasse 'visualize' Methode bleibt unverändert)
     @GetMapping("/visualizer/{algorithm}")
     public SseEmitter visualize(@PathVariable String algorithm,
                                 @RequestParam(required = false) String dataset,
                                 @RequestParam(required = false) String input,
-                                // NEU: Speed-Parameter, Standard 1ms
                                 @RequestParam(required = false, defaultValue = "1") int speed) {
 
-        // kein Timeout (0) — setze falls du einen Timeout brauchst
         SseEmitter emitter = new SseEmitter(0L);
         SortingAlgorithm algo = sortingService.getAlgorithmByName(algorithm);
 
-        // Default input fallback
         List<Integer> inputData = sortingService.getDatasetByName(algorithm);
 
-        // 1) Wenn "input" (JSON) übergeben wurde -> decode + parse
         if (input != null && !input.isEmpty()) {
             try {
                 String decoded = URLDecoder.decode(input, StandardCharsets.UTF_8.name());
@@ -116,26 +104,18 @@ public class CompareController {
                 List<Integer> parsed = mapper.readValue(decoded, new TypeReference<List<Integer>>() {});
                 inputData = new ArrayList<>(parsed);
             } catch (Exception e) {
-                // Parsing fehlgeschlagen -> fallback auf dataset oder default
                 e.printStackTrace();
             }
         } else if (dataset != null && !dataset.isEmpty()) {
-            // 2) else: dataset-Name verwenden (verwende die Controller-eigene Map)
-            // NEU: Ruft getDatasets mit 0 auf (Standard 1000), um die Map zu holen.
-            // (Die Datengröße wird hier *nicht* vom 'count' beeinflusst, sondern nur
-            // der Datentyp 'unsorted', 'sorted' etc. ausgewählt)
-            Map<String, List<Integer>> sets = this.getDatasets(1000); // Standardgröße für den Abruf
+            Map<String, List<Integer>> sets = this.getDatasets(1000);
             List<Integer> ds = sets.get(dataset);
             if (ds != null) inputData = new ArrayList<>(ds);
         }
 
-        // Flag, das anzeigt, ob der Emitter noch aktiv ist
         AtomicBoolean active = new AtomicBoolean(true);
 
-        // onCompletion/onTimeout/onError setzen, damit wir wissen, wenn Client schließt / Timeout / Fehler
         emitter.onCompletion(() -> {
             active.set(false);
-            // optional logging
             System.out.println("SSE completed (onCompletion).");
         });
         emitter.onTimeout(() -> {
@@ -152,38 +132,30 @@ public class CompareController {
             List<Integer> mutableInput = new ArrayList<>(inputData);
             new Thread(() -> {
                 try {
-                    // Callback wird bei jedem Schritt vom Algorithmus aufgerufen
                     algo.sortWithCallback(mutableInput, step -> {
-                        // Wenn nicht mehr aktiv -> nicht senden
                         if (!active.get()) return;
 
                         try {
-                            // Versuche zu senden; wenn der Emitter bereits geschlossen ist, wird IllegalStateException geworfen
                             emitter.send(step);
 
-                            // NEU: Bedingte Pause basierend auf 'speed'
-                            // Wenn speed > 0, pausiere für 'speed' Millisekunden.
                             if (speed > 0) {
                                 try {
-                                    Thread.sleep(speed); // Verwendet den Parameter
+                                    Thread.sleep(speed);
                                 } catch (InterruptedException ie) {
                                     Thread.currentThread().interrupt();
                                 }
                             }
 
                         } catch (IllegalStateException ise) {
-                            // Emitter bereits abgeschlossen / client disconnected -> markiere inaktiv und hör auf zu senden
                             active.set(false);
                             System.out.println("Emitter already completed, stopping sends.");
                         } catch (Exception e) {
-                            // Andere Fehler: markiere inaktiv und versuche completeWithError
                             active.set(false);
                             try { emitter.completeWithError(e); } catch (Exception ignore) {}
                             System.err.println("Error while sending SSE event: " + e);
                         }
                     });
 
-                    // nachdem sortWithCallback fertig ist: complete nur wenn noch aktiv
                     if (active.get()) {
                         try { emitter.complete(); } catch (Exception ignore) {}
                     }
@@ -193,7 +165,6 @@ public class CompareController {
                 }
             }).start();
         } else {
-            // kein Algorithmus gefunden
             try { emitter.complete(); } catch (Exception ignore) {}
         }
 

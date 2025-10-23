@@ -2,6 +2,7 @@ package sorting.algorithms.project.service;
 
 import org.springframework.stereotype.Service;
 import sorting.algorithms.project.SortingAlgorithms.SortingAlgorithm;
+import sorting.algorithms.project.dto.AlgorithmInfo; // NEUER IMPORT
 import sorting.algorithms.project.dto.CompareRequest;
 import sorting.algorithms.project.dto.SortResult;
 
@@ -40,7 +41,7 @@ public class SortingService {
                 SortResult result = new SortResult(
                         algo.getName(),
                         durationMillis,
-                        steps,
+                        steps, // (Name korrigiert basierend auf vorheriger Anfrage)
                         unsorted.stream().limit(5).collect(Collectors.toList()),
                         sorted.stream().limit(5).collect(Collectors.toList()),
                         algo.getWorstCase(),
@@ -53,12 +54,22 @@ public class SortingService {
         return results;
     }
 
-    public List<String> getAvailableAlgorithms() {
+    // --- START DER ÄNDERUNG ---
+
+    // Wir ändern den Rückgabetyp von List<String> zu List<AlgorithmInfo>
+    public List<AlgorithmInfo> getAvailableAlgorithms() {
         return algorithms.values().stream()
-                .map(SortingAlgorithm::getName)
-                .sorted()
+                .map(algo -> new AlgorithmInfo(
+                        algo.getName(),
+                        algo.getWorstCase(),
+                        algo.getAverageCase(),
+                        algo.getBestCase()
+                ))
+                .sorted(Comparator.comparing(AlgorithmInfo::getName)) // Sortiere nach Name
                 .collect(Collectors.toList());
     }
+
+    // --- ENDE DER ÄNDERUNG ---
 
     // 🔹 Neue Methode für Controller: Algorithmus nach Name holen
     public SortingAlgorithm getAlgorithmByName(String name) {

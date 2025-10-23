@@ -5,22 +5,6 @@
     <title>Sortieralgorithmen vergleichen</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="compare.css" />
-    <style>
-        .options-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            max-width: 800px;
-            margin: 1rem auto;
-            align-items: end;
-        }
-        .options-grid label {
-            margin-top: 0;
-        }
-
-        /* (Styling für Slider und Span entfernt) */
-
-    </style>
 </head>
 <body>
 <h1>Vergleich von zwei Sortieralgorithmen</h1>
@@ -83,30 +67,52 @@
      * ...
      */
 
-        // --- Lokaler Speicher für Datensätze ---
     let datasets = {};
 
+    // --- START DER ÄNDERUNG (Neuer Speicher für Algo-Details) ---
+    // Speichert alle Algorithmus-Details (Name, WorstCase etc.)
+    let algorithmDetails = {};
+    // --- ENDE DER ÄNDERUNG ---
+
+
     // --- 1️⃣ Lade verfügbare Sortieralgorithmen vom Backend ---
+    /**
+     * loadAlgorithms()
+     * - (NEU) Ruft jetzt eine Liste von Objekten ab (Name, WorstCase, ...)
+     * - (NEU) Speichert diese Details in 'algorithmDetails'
+     * - Füllt die Select-Boxen
+     */
     async function loadAlgorithms() {
         try {
             const res = await fetch('/api/compare/algorithms');
             if (!res.ok) throw new Error(`Fehler beim Laden der Algorithmen: ${res.status} ${res.statusText}`);
 
+            // Erwartet: JSON-Antwort, z.B.
+            // [ { "name": "BubbleSort", "worstCase": "O(n²)", ... }, ... ]
             const algos = await res.json();
+
+            // Referenzen auf die Select-Elemente
             const selectA = document.getElementById('algoA');
             const selectB = document.getElementById('algoB');
             selectA.innerHTML = '';
             selectB.innerHTML = '';
 
-            for (const name of algos) {
+            // NEU: algorithmDetails leeren
+            algorithmDetails = {};
+
+            // Neue Optionen hinzufügen
+            for (const algo of algos) {
+                // NEU: Details im globalen Objekt speichern
+                algorithmDetails[algo.name] = algo;
+
                 const optionA = document.createElement('option');
-                optionA.value = name;
-                optionA.textContent = name;
+                optionA.value = algo.name; // Wert ist der Name
+                optionA.textContent = algo.name; // Text ist der Name
                 selectA.appendChild(optionA);
 
                 const optionB = document.createElement('option');
-                optionB.value = name;
-                optionB.textContent = name;
+                optionB.value = algo.name;
+                optionB.textContent = algo.name;
                 selectB.appendChild(optionB);
             }
 
@@ -126,38 +132,26 @@
     /**
      * loadDatasets()
      * - Validiert die Elementanzahl. Bei Fehlern wird 100 verwendet und ein Alert gezeigt.
-     * ...
      */
     async function loadDatasets() {
 
-        // Elementanzahl-Element und Wert holen
         const countInput = document.getElementById('elementCount');
-        let elementCount = parseInt(countInput.value, 10); // Wert als Zahl parsen
-
-        // VALIDIERUNG
+        let elementCount = parseInt(countInput.value, 10);
         const minCount = 100;
         const maxCount = 1000000;
 
-        // Prüfen, ob (NaN - keine Zahl) ODER (unter Min) ODER (über Max)
         if (isNaN(elementCount) || elementCount < minCount || elementCount > maxCount) {
-            // Zeige den "kleinen Fehler"
             alert(`Ungültige Elementanzahl. Die Anzahl muss zwischen ${minCount} und ${maxCount} liegen. Setze auf 100 zurück.`);
-
-            // Setze auf den Wert 100 zurück
             elementCount = 100;
-
-            // Aktualisiere das Feld, damit der User die Korrektur sieht
             countInput.value = 100;
         }
 
         try {
-            // Verwende die validierte 'elementCount' für den API-Aufruf
             const res = await fetch(`/api/compare/datasets?count=${elementCount}`);
-
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
             const data = await res.json();
             datasets = data || {};
-
             const sel = document.getElementById('datasetSelect');
             sel.innerHTML = '';
 
@@ -177,46 +171,94 @@
     }
 
     // --- 3️⃣ Vergleich ausführen ---
+    /**
+     * compare()
+     * - (NEU) Prüft die Worst-Case-Laufzeit und Elementanzahl VOR dem Fetch.
+     * - (NEU) Zeigt eine confirm()-Warnung, wenn die Kombination langsam sein könnte.
+     */
     async function compare() {
         const status = document.getElementById('status');
+
+        // --- START DER ÄNDERUNG (Warnungs-Logik) ---
+
+        // 1. Daten für die Warnung sammeln
+        const algoA_name = document.getElementById('algoA').value;
+        const algoB_name = document.getElementById('algoB').value;
+        const elementCount = parseInt(document.getElementById('elementCount').value, 10);
+
+        const detailsA = algorithmDetails[algoA_name];
+        const detailsB = algorithmDetails[algoB_name];
+
+        let showWarning = false;
+        let warningReason = "";
+
+        // Prüfe, ob die Details geladen wurden (sollte immer der Fall sein)
+        if (detailsA && detailsB) {
+            const worstA = detailsA.worstCase;
+            const worstB = detailsB.worstCase;
+
+            // Definition von "langsamen" Komplexitäten
+            const slowComplexities = ["O(n²)", "O(n^(3/2))"];
+
+            // Definition von "sehr großen" Datenmengen (für O(n²) usw.)
+            const largeN = 20000;
+
+            // Prüflogik
+            if (worstA.includes("∞") || worstB.includes("∞")) {
+                showWarning = true;
+                warningReason = "Ein Algorithmus mit O(∞) (z.B. BogoSort) wird fast sicher nicht fertig.";
+            } else if (elementCount > largeN &&
+                (slowComplexities.some(c => worstA.includes(c)) ||
+                    slowComplexities.some(c => worstB.includes(c))) )
+            {
+                showWarning = true;
+                warningReason = `Sie führen einen O(n²) Algorithmus mit einer großen Datenmenge (n > ${largeN}) aus. Dies kann sehr lange dauern.`;
+            }
+        }
+
+        // 2. Warnung anzeigen und ggf. abbrechen
+        if (showWarning) {
+            const proceed = confirm(`WARNUNG:\n${warningReason}\n\Möchten Sie den Vergleich trotzdem starten?`);
+            if (!proceed) {
+                status.style.display = 'none'; // Status ausblenden
+                return; // Funktion abbrechen
+            }
+        }
+        // --- ENDE DER ÄNDERUNG (Warnungs-Logik) ---
+
+
+        // Ladehinweis anzeigen (jetzt erst, nach der Bestätigung)
         status.style.display = 'inline';
         status.textContent = "Sortiere Daten...";
 
         try {
             const datasetKey = document.getElementById('datasetSelect').value;
 
-            // --- START DER JAVASCRIPT-ÄNDERUNG (Validierung für Speed) ---
-
-            // NEU: Visualisierungs-Geschwindigkeit auslesen und validieren
+            // Validierung für Speed (von vorheriger Anfrage)
             const speedInput = document.getElementById('vizSpeed');
             let vizSpeed = parseInt(speedInput.value, 10);
-
             const minSpeed = 0;
             const maxSpeed = 1000;
 
             if (isNaN(vizSpeed) || vizSpeed < minSpeed || vizSpeed > maxSpeed) {
-                alert(`Ungültige Pausenzeit. Die Zeit muss zwischen ${minSpeed}ms und ${maxSpeed}ms liegen. Setze auf 1ms zurück.`);
-                vizSpeed = 0; // Standard-Fallback
+                alert(`Ungültige Pausenzeit. Die Zeit muss zwischen ${minSpeed}ms und ${maxSpeed}ms liegen. Setze auf 0ms zurück.`);
+                vizSpeed = 0;
                 speedInput.value = 0;
             }
 
-            // --- ENDE DER JAVASCRIPT-ÄNDERUNG ---
-
             const inputData = datasets[datasetKey];
-
             if (!inputData) {
                 alert("Fehler: Kein Datensatz ausgewählt!");
                 return;
             }
 
+            // Payload (unverändert)
             const payload = {
-                algorithms: [
-                    document.getElementById('algoA').value,
-                    document.getElementById('algoB').value
-                ],
+                algorithms: [algoA_name, algoB_name],
                 input: inputData
             };
 
+            // POST-Request (unverändert)
             const res = await fetch('/api/compare', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -225,6 +267,7 @@
 
             if (!res.ok) throw new Error(`Fehler beim Vergleich: ${res.status} ${res.statusText}`);
 
+            // Ergebnis-Tabelle füllen (unverändert)
             const data = await res.json();
             const table = document.getElementById('resultTable');
             const tbody = table.querySelector('tbody');
@@ -247,14 +290,12 @@
 
             table.style.display = (data && data.length) ? 'table' : 'none';
 
-            const algoA = document.getElementById('algoA').value;
-            const algoB = document.getElementById('algoB').value;
+            // IFrames aktualisieren (unverändert)
             const frameA = document.getElementById('frameA');
             const frameB = document.getElementById('frameB');
 
-            // Iframe URLs mit allen Parametern (verwendet die validierte 'vizSpeed' Variable)
-            frameA.src = `/visualizer.html?algo=${encodeURIComponent(algoA)}&dataset=${encodeURIComponent(datasetKey)}&speed=${vizSpeed}`;
-            frameB.src = `/visualizer.html?algo=${encodeURIComponent(algoB)}&dataset=${encodeURIComponent(datasetKey)}&speed=${vizSpeed}`;
+            frameA.src = `/visualizer.html?algo=${encodeURIComponent(algoA_name)}&dataset=${encodeURIComponent(datasetKey)}&speed=${vizSpeed}`;
+            frameB.src = `/visualizer.html?algo=${encodeURIComponent(algoB_name)}&dataset=${encodeURIComponent(datasetKey)}&speed=${vizSpeed}`;
 
         } catch (err) {
             console.error("Fehler beim Vergleich:", err);
@@ -266,13 +307,7 @@
 
     // --- Event-Listener und Initialisierung ---
     document.getElementById('compareBtn').addEventListener('click', compare);
-
     document.getElementById('elementCount').addEventListener('change', loadDatasets);
-
-    // --- START DER JAVASCRIPT-ÄNDERUNG (Listener entfernt) ---
-    // Der Event-Listener für den Slider ('input') wird nicht mehr benötigt.
-    // document.getElementById('vizSpeed').addEventListener('input', ...); // <- Diese Zeile wurde entfernt
-    // --- ENDE DER JAVASCRIPT-ÄNDERUNG ---
 
     // Initiales Laden
     loadAlgorithms();
