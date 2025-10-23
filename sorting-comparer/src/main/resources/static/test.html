@@ -5,13 +5,52 @@
     <title>Sortieralgorithmen vergleichen</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="compare.css" />
-
+    <style>
+        /* Zusätzliche Stile für die Suchergebnislisten */
+        .search-results { /* Klasse statt ID für Wiederverwendbarkeit */
+            border: 1px solid #ccc;
+            max-height: 200px;
+            overflow-y: auto;
+            position: absolute; /* Positioniert die Liste unter dem Suchfeld */
+            background-color: white;
+            z-index: 1000; /* Stellt sicher, dass die Liste über anderen Elementen liegt */
+            width: calc(100% - 1.2rem); /* Passt Breite an (ggf. anpassen) */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-top: 2px; /* Kleiner Abstand zum Suchfeld */
+        }
+        .search-result-item {
+            padding: 8px 12px;
+            cursor: pointer; /* Gesamtes Element klickbar machen */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .search-result-item:hover {
+            background-color: #f0f0f0;
+        }
+        .search-result-item span {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        /* Style für die Anzeige der ausgewählten Algorithmen - ENTFERNT */
+        /* .selected-algo-display {
+             margin-top: 5px;
+             font-style: italic;
+             color: #555;
+             min-height: 1.2em;
+        } */
+        /* Container für Suche und Ergebnisliste */
+        .search-container {
+            position: relative; /* Wichtig für absolute Positionierung der Ergebnisliste */
+            margin-bottom: 1rem; /* Abstand nach unten */
+        }
+    </style>
 </head>
 <body>
 <h1>Vergleich von zwei Sortieralgorithmen</h1>
 
 <div class="center">
-    <label>Datensatz-Auswahl</label>
+    <label for="datasetSelect">Datensatz-Auswahl</label>
     <select id="datasetSelect"></select>
 
     <div class="options-grid">
@@ -21,25 +60,30 @@
         </div>
         <div>
             <label for="vizSpeed">Visualisierungs-Pause (ms)</label>
-            <div>
-                <input type="number" id="vizSpeed" value="0" min="0" max="1000">
-            </div>
+            <input type="number" id="vizSpeed" value="0" min="0" max="1000">
         </div>
     </div>
 </div>
 
 <div class="grid">
     <div>
-        <label>Algorithmus A</label>
-        <select id="algoA"></select>
+        <label for="searchInputA">Algorithmus A</label>
+        <div class="search-container">
+            <input type="text" id="searchInputA" placeholder="Suchen..." autocomplete="off">
+            <div id="searchResultsA" class="search-results" style="display: none;"></div>
+        </div>
         <iframe id="frameA" title="Algorithmus A Visualisierung"></iframe>
     </div>
     <div>
-        <label>Algorithmus B</label>
-        <select id="algoB"></select>
+        <label for="searchInputB">Algorithmus B</label>
+        <div class="search-container">
+            <input type="text" id="searchInputB" placeholder="Suchen..." autocomplete="off">
+            <div id="searchResultsB" class="search-results" style="display: none;"></div>
+        </div>
         <iframe id="frameB" title="Algorithmus B Visualisierung"></iframe>
     </div>
 </div>
+
 
 <div class="center">
     <button id="compareBtn">Vergleichen</button>
@@ -66,10 +110,24 @@
 <script>
     let datasets = {};
     let algorithmDetails = {};
+    let allAlgorithmNames = []; // Globale Variable für alle Namen
+
+    // Variablen zum Speichern der aktuell ausgewählten Algorithmusnamen
+    let selectedAlgorithmA = null;
+    let selectedAlgorithmB = null;
 
     let isComparing = false;
     let currentCompareController = null;
     let progressInterval = null;
+
+    // Referenzen auf die UI-Elemente
+    const searchInputA = document.getElementById('searchInputA');
+    const searchResultsA = document.getElementById('searchResultsA');
+    // const selectedAlgoADisplay = document.getElementById('selectedAlgoA'); // Nicht mehr benötigt
+
+    const searchInputB = document.getElementById('searchInputB');
+    const searchResultsB = document.getElementById('searchResultsB');
+    // const selectedAlgoBDisplay = document.getElementById('selectedAlgoB'); // Nicht mehr benötigt
 
     /**
      * Lädt die Liste der verfügbaren Algorithmen vom Backend.
@@ -80,37 +138,115 @@
             if (!res.ok) throw new Error(`Fehler beim Laden der Algorithmen: ${res.status} ${res.statusText}`);
 
             const algos = await res.json();
-            const selectA = document.getElementById('algoA');
-            const selectB = document.getElementById('algoB');
-            selectA.innerHTML = '';
-            selectB.innerHTML = '';
             algorithmDetails = {};
+            // Namen speichern und alphabetisch sortieren
+            allAlgorithmNames = algos.map(algo => algo.name).sort();
 
             for (const algo of algos) {
                 algorithmDetails[algo.name] = algo;
-
-                const optionA = document.createElement('option');
-                optionA.value = algo.name;
-                optionA.textContent = algo.name;
-                selectA.appendChild(optionA);
-
-                const optionB = document.createElement('option');
-                optionB.value = algo.name;
-                optionB.textContent = algo.name;
-                selectB.appendChild(optionB);
             }
 
-            if (algos.length >= 2) {
-                selectA.selectedIndex = 0;
-                selectB.selectedIndex = 1;
-            } else if (algos.length === 1) {
-                selectA.selectedIndex = 0;
-                selectB.selectedIndex = 0;
+            // Standardauswahl setzen (optional) - z.B. die ersten beiden
+            if (allAlgorithmNames.length >= 1) {
+                // Wähle aus, aber fülle das Suchfeld NICHT mehr
+                selectedAlgorithmA = allAlgorithmNames[0];
+                // selectedAlgoADisplay.textContent = selectedAlgorithmA; // Anzeige entfernt
             }
+            if (allAlgorithmNames.length >= 2) {
+                selectedAlgorithmB = allAlgorithmNames[1];
+                // selectedAlgoBDisplay.textContent = selectedAlgorithmB; // Anzeige entfernt
+            } else if (allAlgorithmNames.length === 1) {
+                // Wenn nur einer da ist, wähle ihn auch für B
+                selectedAlgorithmB = allAlgorithmNames[0];
+                // selectedAlgoBDisplay.textContent = selectedAlgorithmB; // Anzeige entfernt
+            }
+            // Initial die Suchfelder NICHT füllen
+            // searchInputA.value = selectedAlgorithmA ?? ''; // Auskommentiert
+            // searchInputB.value = selectedAlgorithmB ?? ''; // Auskommentiert
+
+
         } catch (err) {
             console.error('Fehler beim Laden der Algorithmen:', err);
+            allAlgorithmNames = []; // Liste leeren im Fehlerfall
         }
     }
+
+    /**
+     * Aktualisiert die dynamische Suchergebnisliste für A oder B.
+     * @param {'A' | 'B'} slot Der Slot (A oder B), dessen Liste aktualisiert wird.
+     */
+    function updateSearchResults(slot) {
+        const inputElement = (slot === 'A') ? searchInputA : searchInputB;
+        const resultsContainer = (slot === 'A') ? searchResultsA : searchResultsB;
+        const searchTerm = inputElement.value;
+        resultsContainer.innerHTML = ''; // Liste leeren
+
+        let filteredList = [];
+        const searchTermLower = searchTerm.trim().toLowerCase();
+
+        if (searchTermLower === '') {
+            filteredList = [...allAlgorithmNames]; // Alle anzeigen bei leerem Feld
+        } else {
+            const startsWithList = allAlgorithmNames.filter(name =>
+                name.toLowerCase().startsWith(searchTermLower)
+            );
+            const containsList = allAlgorithmNames.filter(name =>
+                !name.toLowerCase().startsWith(searchTermLower) &&
+                name.toLowerCase().includes(searchTermLower)
+            );
+            filteredList = startsWithList.concat(containsList);
+        }
+
+        if (filteredList.length > 0) {
+            filteredList.forEach(algoName => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('search-result-item');
+                itemDiv.onclick = () => selectAlgorithm(algoName, slot); // Klick auf Element wählt aus
+
+                const nameSpan = document.createElement('span');
+                // Hervorhebung nur, wenn ein Suchbegriff vorhanden ist
+                if (searchTermLower !== '') {
+                    const escapedSearchTerm = searchTermLower.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                    const regex = new RegExp(`(${escapedSearchTerm})`, 'gi');
+                    nameSpan.innerHTML = algoName.replace(regex, '<b>$1</b>');
+                } else {
+                    nameSpan.textContent = algoName; // Keine Hervorhebung
+                }
+
+                itemDiv.appendChild(nameSpan);
+                resultsContainer.appendChild(itemDiv);
+            });
+            resultsContainer.style.display = 'block'; // Liste anzeigen
+        } else {
+            // Optional: "Keine Ergebnisse"-Nachricht anzeigen
+            const noResultDiv = document.createElement('div');
+            noResultDiv.classList.add('search-result-item');
+            noResultDiv.style.fontStyle = 'italic';
+            noResultDiv.textContent = "Keine Übereinstimmung";
+            resultsContainer.appendChild(noResultDiv);
+            resultsContainer.style.display = 'block';
+        }
+    }
+
+    /**
+     * Wählt einen Algorithmus für Slot A oder B aus und aktualisiert die Anzeige.
+     * @param {string} algoName Der Name des Algorithmus.
+     * @param {'A' | 'B'} slot Der Slot (A oder B).
+     */
+    function selectAlgorithm(algoName, slot) {
+        if (slot === 'A') {
+            selectedAlgorithmA = algoName;
+            // selectedAlgoADisplay.textContent = algoName; // Anzeige entfernt
+            searchInputA.value = algoName; // Suchfeld mit ausgewähltem Namen füllen
+            searchResultsA.style.display = 'none'; // Ergebnisliste ausblenden
+        } else if (slot === 'B') {
+            selectedAlgorithmB = algoName;
+            // selectedAlgoBDisplay.textContent = algoName; // Anzeige entfernt
+            searchInputB.value = algoName; // Suchfeld mit ausgewähltem Namen füllen
+            searchResultsB.style.display = 'none'; // Ergebnisliste ausblenden
+        }
+    }
+
 
     /**
      * Lädt die Datensätze basierend auf der gewählten Elementanzahl.
@@ -122,11 +258,15 @@
         const minCount = 5;
         const maxCount = 1000000;
 
-        if (isNaN(elementCount) || elementCount < minCount || elementCount > maxCount) {
-            alert(`Ungültige Elementanzahl. Die Anzahl muss zwischen ${minCount} und ${maxCount} liegen. Setze auf ${minCount} zurück.`);
+        // Korrigiere ungültige Werte direkt
+        if (isNaN(elementCount) || elementCount < minCount) {
             elementCount = minCount;
             countInput.value = minCount;
+        } else if (elementCount > maxCount) {
+            elementCount = maxCount;
+            countInput.value = maxCount;
         }
+
 
         try {
             const res = await fetch(`/api/compare/datasets?count=${elementCount}`);
@@ -135,8 +275,10 @@
             const data = await res.json();
             datasets = data || {};
             const sel = document.getElementById('datasetSelect');
+            const previousValue = sel.value;
             sel.innerHTML = '';
 
+            let foundPrevious = false;
             for (const key of Object.keys(datasets)) {
                 const opt = document.createElement('option');
                 opt.value = key;
@@ -144,11 +286,23 @@
                     .replace(/([A-Z])/g, ' $1')
                     .replace(/^./, str => str.toUpperCase());
                 sel.appendChild(opt);
+                if (key === previousValue) {
+                    opt.selected = true;
+                    foundPrevious = true;
+                }
             }
 
-            if (sel.options.length > 0) sel.selectedIndex = 0;
+            if (!foundPrevious && sel.options.length > 0) {
+                sel.selectedIndex = 0;
+            } else if (sel.options.length === 0) {
+                sel.innerHTML = '<option value="">Keine Datensätze</option>';
+            }
+
         } catch (err) {
             console.error("Fehler beim Laden der Datensätze:", err);
+            datasets = {};
+            const sel = document.getElementById('datasetSelect');
+            sel.innerHTML = '<option value="">Fehler beim Laden</option>';
         }
     }
 
@@ -162,6 +316,7 @@
 
         isComparing = false;
         compareBtn.textContent = 'Vergleichen';
+        compareBtn.disabled = false;
         compareBtn.classList.remove('cancel-btn');
 
         status.style.display = 'none';
@@ -174,6 +329,13 @@
         }
 
         currentCompareController = null;
+
+        // Eingabefelder wieder aktivieren
+        searchInputA.disabled = false;
+        searchInputB.disabled = false;
+        document.getElementById('datasetSelect').disabled = false;
+        document.getElementById('elementCount').disabled = false;
+        document.getElementById('vizSpeed').disabled = false;
     }
 
     /**
@@ -182,33 +344,92 @@
     function cancelCompare() {
         if (currentCompareController) {
             currentCompareController.abort();
-            console.log("Vergleich abgebrochen.");
+            console.log("Vergleichs-Anfrage abgebrochen.");
         }
+        const compareBtn = document.getElementById('compareBtn');
+        compareBtn.textContent = 'Wird abgebrochen...';
+        compareBtn.disabled = true;
     }
 
     /**
      * Startet den Vergleichsprozess.
      */
     async function startCompare() {
+        // UI-Elemente holen
         const status = document.getElementById('status');
         const compareBtn = document.getElementById('compareBtn');
         const progressBar = document.getElementById('progressBar');
         const table = document.getElementById('resultTable');
+        const tbody = table.querySelector('tbody');
         const frameA = document.getElementById('frameA');
         const frameB = document.getElementById('frameB');
+        const elementCountInput = document.getElementById('elementCount');
+        const speedInput = document.getElementById('vizSpeed');
+        const datasetKey = document.getElementById('datasetSelect').value;
 
+        // --- Ausgewählte Algorithmen prüfen ---
+        if (!selectedAlgorithmA || !selectedAlgorithmB) {
+            alert("Bitte wählen Sie über die Suche Algorithmus A und Algorithmus B aus.");
+            return;
+        }
+        // --- Prüfen, ob die Werte in den Suchfeldern den ausgewählten entsprechen ---
+        // Dies ist ein Fallback, falls der Nutzer nach Auswahl manuell etwas Ungültiges eintippt
+        if (searchInputA.value !== selectedAlgorithmA) {
+            alert(`Algorithmus A "${searchInputA.value}" ist ungültig oder nicht ausgewählt. Bitte wählen Sie aus der Liste aus.`);
+            searchInputA.focus(); // Fokus auf das problematische Feld setzen
+            return;
+        }
+        if (searchInputB.value !== selectedAlgorithmB) {
+            alert(`Algorithmus B "${searchInputB.value}" ist ungültig oder nicht ausgewählt. Bitte wählen Sie aus der Liste aus.`);
+            searchInputB.focus();
+            return;
+        }
+
+
+        // Alte Ergebnisse und Visualisierungen löschen
         table.style.display = 'none';
         frameA.src = 'about:blank';
         frameB.src = 'about:blank';
-        if (table.querySelector('tbody')) {
-            table.querySelector('tbody').innerHTML = '';
+        if (tbody) {
+            tbody.innerHTML = '';
         }
 
-        const algoA_name = document.getElementById('algoA').value;
-        const algoB_name = document.getElementById('algoB').value;
-        const elementCount = parseInt(document.getElementById('elementCount').value, 10);
-        const detailsA = algorithmDetails[algoA_name];
-        const detailsB = algorithmDetails[algoB_name];
+        // Parameter holen und validieren
+        const elementCount = parseInt(elementCountInput.value, 10);
+        let vizSpeed = parseInt(speedInput.value, 10);
+
+        // --- Eingabevalidierung ---
+        const minCount = 5;
+        const maxCount = 1000000;
+        if (isNaN(elementCount) || elementCount < minCount || elementCount > maxCount) {
+            elementCountInput.value = isNaN(elementCount) || elementCount < minCount ? minCount : maxCount;
+            await loadDatasets();
+            startCompare();
+            return;
+        }
+
+        const minSpeed = 0;
+        const maxSpeed = 1000;
+        if (isNaN(vizSpeed) || vizSpeed < minSpeed || vizSpeed > maxSpeed) {
+            vizSpeed = isNaN(vizSpeed) || vizSpeed < minSpeed ? minSpeed : maxSpeed;
+            speedInput.value = vizSpeed;
+        }
+
+        const inputData = datasets[datasetKey];
+        if (!inputData) {
+            alert("Fehler: Kein gültiger Datensatz ausgewählt oder Datensätze nicht geladen!");
+            await loadDatasets();
+            if (!datasets[datasetKey]) {
+                resetUI();
+                return;
+            }
+            startCompare();
+            return;
+        }
+
+        // --- Warnung bei potenziell langsamen Algorithmen ---
+        const detailsA = algorithmDetails[selectedAlgorithmA];
+        const detailsB = algorithmDetails[selectedAlgorithmB];
         let showWarning = false;
         let warningReason = "";
 
@@ -216,69 +437,63 @@
             const worstA = detailsA.worstCase;
             const worstB = detailsB.worstCase;
             const slowComplexities = ["O(n²)", "O(n^(3/2))"];
+            const verySlowComplexities = ["O(∞)"];
             const largeN = 20000;
 
-            if (worstA.includes("∞") || worstB.includes("∞")) {
+            if (verySlowComplexities.some(c => worstA.includes(c)) || verySlowComplexities.some(c => worstB.includes(c))) {
                 showWarning = true;
-                warningReason = "Ein Algorithmus mit O(∞) (z.B. BogoSort) wird fast sicher nicht fertig.";
+                warningReason = `Ein Algorithmus mit sehr hoher Komplexität (z.B. ${verySlowComplexities.join(', ')}) wird bei dieser Datenmenge (${elementCount}) wahrscheinlich nicht in angemessener Zeit fertig oder den Browser blockieren.`;
             } else if (elementCount > largeN &&
-                (slowComplexities.some(c => worstA.includes(c)) ||
-                    slowComplexities.some(c => worstB.includes(c))) )
-            {
+                (slowComplexities.some(c => worstA.includes(c)) || slowComplexities.some(c => worstB.includes(c)))) {
                 showWarning = true;
-                warningReason = `Sie führen einen O(n²) Algorithmus mit einer großen Datenmenge (n > ${largeN}) aus. Dies kann sehr lange dauern.`;
+                warningReason = `Sie führen einen potenziell langsamen Algorithmus (${slowComplexities.join(' oder ')}) mit einer großen Datenmenge (n=${elementCount} > ${largeN}) aus. Dies kann einige Zeit dauern oder den Browser belasten.`;
             }
         }
 
         if (showWarning) {
-            const proceed = confirm(`WARNUNG:\n${warningReason}\n\Möchten Sie den Vergleich trotzdem starten?`);
+            const proceed = confirm(`WARNUNG:\n${warningReason}\n\nMöchten Sie den Vergleich trotzdem starten?`);
             if (!proceed) {
                 return;
             }
         }
 
+        // --- Vergleich starten ---
         isComparing = true;
         currentCompareController = new AbortController();
 
+        // UI für Ladezustand anpassen
         status.style.display = 'inline';
         status.textContent = "Sortiere Daten...";
         compareBtn.textContent = 'Abbruch';
         compareBtn.classList.add('cancel-btn');
-
         progressBar.style.display = 'block';
         progressBar.value = 0;
 
+        // Eingabefelder deaktivieren
+        searchInputA.disabled = true;
+        searchInputB.disabled = true;
+        document.getElementById('datasetSelect').disabled = true;
+        elementCountInput.disabled = true;
+        speedInput.disabled = true;
+
+
+        // Fortschrittsbalken-Simulation
         progressInterval = setInterval(() => {
             if (progressBar.value < 90) {
                 progressBar.value += 2;
+            } else if (progressBar.value < 98) {
+                progressBar.value += 0.2;
             }
-        }, 100);
+        }, 150);
 
         try {
-            const datasetKey = document.getElementById('datasetSelect').value;
-            const speedInput = document.getElementById('vizSpeed');
-            let vizSpeed = parseInt(speedInput.value, 10);
-            const minSpeed = 0;
-            const maxSpeed = 1000;
-
-            if (isNaN(vizSpeed) || vizSpeed < minSpeed || vizSpeed > maxSpeed) {
-                alert(`Ungültige Pausenzeit. Die Zeit muss zwischen ${minSpeed}ms und ${maxSpeed}ms liegen. Setze auf 0ms zurück.`);
-                vizSpeed = 0;
-                speedInput.value = 0;
-            }
-
-            const inputData = datasets[datasetKey];
-            if (!inputData) {
-                alert("Fehler: Kein Datensatz ausgewählt!");
-                resetUI();
-                return;
-            }
-
+            // Request-Payload
             const payload = {
-                algorithms: [algoA_name, algoB_name],
+                algorithms: [selectedAlgorithmA, selectedAlgorithmB],
                 input: inputData
             };
 
+            // Fetch
             const res = await fetch('/api/compare', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -286,22 +501,35 @@
                 signal: currentCompareController.signal
             });
 
-            if (!res.ok) throw new Error(`Fehler beim Vergleich: ${res.status} ${res.statusText}`);
+            // Fehlerbehandlung
+            if (!res.ok) {
+                let errorMsg = `Fehler beim Vergleich: ${res.status} ${res.statusText}`;
+                try {
+                    const errorData = await res.json();
+                    errorMsg += `\nServer: ${errorData.message || 'Keine Details'}`;
+                } catch (e) { /* Ignore */ }
+                throw new Error(errorMsg);
+            }
 
-            progressBar.value = 95;
+            progressBar.value = 98;
 
+            // Ergebnisse verarbeiten
             const data = await res.json();
-            const tbody = table.querySelector('tbody');
+
+            if (!tbody) {
+                console.error("Tabellen-Body (tbody) nicht gefunden!");
+                return;
+            }
             tbody.innerHTML = '';
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${row.algorithm ?? '-'}</td>
-                    <td>${row.durationMillis ?? '-'}</td>
-                    <td>${row.steps ?? '-'}</td>
-                    <td>${(row.unsorted || []).join(', ')}</td>
-                    <td>${(row.sorted || []).join(', ')}</td>
+                    <td>${row.durationMillis?.toLocaleString() ?? '-'}</td>
+                    <td>${row.steps?.toLocaleString() ?? '-'}</td>
+                    <td>${(row.unsorted || []).join(', ') || '-'}</td>
+                    <td>${(row.sorted || []).join(', ') || '-'}</td>
                     <td>${row.worstCase ?? '-'}</td>
                     <td>${row.averageCase ?? '-'}</td>
                     <td>${row.bestCase ?? '-'}</td>
@@ -309,25 +537,31 @@
                 tbody.appendChild(tr);
             });
 
-            table.style.display = (data && data.length) ? 'table' : 'none';
+            table.style.display = (data && data.length > 0) ? 'table' : 'none';
 
+            // Visualisierungen laden
             const vizUrlParams = `&dataset=${encodeURIComponent(datasetKey)}&speed=${vizSpeed}&count=${elementCount}`;
-            frameA.src = `/visualizer.html?algo=${encodeURIComponent(algoA_name)}${vizUrlParams}`;
-            frameB.src = `/visualizer.html?algo=${encodeURIComponent(algoB_name)}${vizUrlParams}`;
+            frameA.src = `/visualizer.html?algo=${encodeURIComponent(selectedAlgorithmA)}${vizUrlParams}`;
+            frameB.src = `/visualizer.html?algo=${encodeURIComponent(selectedAlgorithmB)}${vizUrlParams}`;
 
             progressBar.value = 100;
 
         } catch (err) {
             if (err.name === 'AbortError') {
-                console.log("Fetch abgebrochen.");
+                console.log("Fetch-Anfrage wurde abgebrochen.");
+                status.textContent = "Vergleich abgebrochen.";
             } else {
                 console.error("Fehler beim Vergleich:", err);
-                alert("Fehler beim Vergleich: " + (err.message || err));
+                alert("Ein Fehler ist aufgetreten: " + (err.message || "Unbekannter Fehler"));
+                status.textContent = "Fehler!";
+                progressBar.value = 0;
             }
         } finally {
             resetUI();
         }
     }
+
+    // --- Event Listener ---
 
     document.getElementById('compareBtn').addEventListener('click', () => {
         if (isComparing) {
@@ -339,8 +573,45 @@
 
     document.getElementById('elementCount').addEventListener('change', loadDatasets);
 
-    loadAlgorithms();
-    loadDatasets();
+    // Event Listener für Suchfeld A
+    searchInputA.addEventListener('input', () => updateSearchResults('A'));
+    searchInputA.addEventListener('focus', () => updateSearchResults('A'));
+    searchInputA.addEventListener('blur', () => {
+        setTimeout(() => {
+            // Blende Liste nur aus, wenn der Fokus nicht auf einem Kindelement liegt
+            if (!searchResultsA.contains(document.activeElement)) {
+                searchResultsA.style.display = 'none';
+                // Setze den Wert zurück, wenn er ungültig ist
+                if (!allAlgorithmNames.includes(searchInputA.value)) {
+                    searchInputA.value = selectedAlgorithmA ?? ''; // Setze auf den gültigen Wert zurück
+                }
+            }
+        }, 150); // Kleiner Delay, damit Klicks auf Liste funktionieren
+    });
+
+    // Event Listener für Suchfeld B
+    searchInputB.addEventListener('input', () => updateSearchResults('B'));
+    searchInputB.addEventListener('focus', () => updateSearchResults('B'));
+    searchInputB.addEventListener('blur', () => {
+        setTimeout(() => {
+            if (!searchResultsB.contains(document.activeElement)) {
+                searchResultsB.style.display = 'none';
+                if (!allAlgorithmNames.includes(searchInputB.value)) {
+                    searchInputB.value = selectedAlgorithmB ?? '';
+                }
+            }
+        }, 150);
+    });
+
+
+    // Initiales Laden
+    async function initializeApp() {
+        await loadAlgorithms();
+        await loadDatasets();
+    }
+
+    initializeApp();
+
 </script>
 </body>
 </html>
